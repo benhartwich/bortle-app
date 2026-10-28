@@ -7,6 +7,7 @@
 // Hand-written on package:http with hand-written fromJson, like allskyhub's HubClient.
 
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -172,6 +173,19 @@ class BortleClient {
 
   /// A preview or result file under the data dir, as the cockpit serves it.
   String dataUrl(String relative) => '$baseUrl/api/bortle/data/$relative';
+
+  final _images = <String, Future<Uint8List>>{};
+
+  /// A preview's bytes, fetched once per client with this device's token. Through the
+  /// same http stack as every other call, so tests and screenshots can serve it too.
+  Future<Uint8List> dataBytes(String relative) => _images.putIfAbsent(relative, () async {
+    final response = await _http.get(Uri.parse(dataUrl(relative)), headers: authHeaders);
+    if (response.statusCode != 200) {
+      _images.remove(relative);
+      throw BortleError(response.statusCode, 'HTTP ${response.statusCode}');
+    }
+    return response.bodyBytes;
+  });
 }
 
 /// "bortle.example.org" → "https://bortle.example.org"; no trailing slash.

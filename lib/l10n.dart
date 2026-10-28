@@ -43,3 +43,14 @@ String duration(Duration d) {
   final m = d.inMinutes % 60;
   return '${d.inHours} h ${m.toString().padLeft(2, '0')}';
 }
+
+/// Day and month, "25.10." or "25 Oct".
+String dayMonth(DateTime d) => appEnglish
+    ? '${d.day} ${const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.month - 1]}'
+    : '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.';
+
+/// "21:07", in local time.
+String clock(DateTime d) {
+  final l = d.toLocal();
+  return '${l.hour.toString().padLeft(2, '0')}:${l.minute.toString().padLeft(2, '0')}';
+}

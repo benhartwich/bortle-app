@@ -2,7 +2,7 @@ name: bortle_app
 description: "Bortle: plan, control and develop your astrophotography nights"
 publish_to: 'none'
 
-version: 0.1.0+1
+version: 0.1.1+2
 
 environment:
   sdk: ^3.12.0
@@ -21,6 +21,21 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # Generates the launcher icons from assets/icon (MIT); `dart run flutter_launcher_icons`.
+  flutter_launcher_icons: ^0.14.4
+
+# The icon: assets/icon/parts.py writes the SVGs (sky over a town's glow, a spiral galaxy),
+# rendered to PNG; background, foreground and monochrome for Android's adaptive and themed
+# icons, the same scheme as allskyhub's.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/icon/icon.png
+  adaptive_icon_background: assets/icon/background.png
+  adaptive_icon_foreground: assets/icon/foreground.png
+  adaptive_icon_monochrome: assets/icon/monochrome.png
+  remove_alpha_ios: true
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true

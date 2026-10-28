@@ -103,7 +103,10 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: ServerImage(client: widget.client, path: g.preview!),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ServerImage(client: widget.client, path: g.preview!),
+                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),

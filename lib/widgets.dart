@@ -1,5 +1,7 @@
 // Small pieces every screen uses.
 
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import 'api/bortle_client.dart';
@@ -7,7 +9,7 @@ import 'design.dart';
 import 'l10n.dart';
 
 /// A preview from the server, fetched with this device's token.
-class ServerImage extends StatelessWidget {
+class ServerImage extends StatefulWidget {
   const ServerImage({required this.client, required this.path, this.fit = BoxFit.cover, super.key});
 
   final BortleClient client;
@@ -15,26 +17,44 @@ class ServerImage extends StatelessWidget {
   final BoxFit fit;
 
   @override
+  State<ServerImage> createState() => _ServerImageState();
+}
+
+class _ServerImageState extends State<ServerImage> {
+  late Future<Uint8List> _bytes = widget.client.dataBytes(widget.path);
+
+  @override
+  void didUpdateWidget(ServerImage old) {
+    super.didUpdateWidget(old);
+    if (old.path != widget.path || old.client != widget.client) _bytes = widget.client.dataBytes(widget.path);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final image = Image.network(
-      client.dataUrl(path),
-      headers: client.authHeaders,
-      fit: fit,
-      errorBuilder: (context, _, _) => ColoredBox(
-        color: context.tones.surface,
-        child: Center(child: Icon(Icons.image_not_supported_outlined, color: context.tones.muted)),
-      ),
-    );
-    // In red light a full-colour picture would undo the whole mode.
-    if (!context.tones.red) return image;
-    return ColorFiltered(
-      colorFilter: const ColorFilter.matrix([
-        .3, .4, .1, 0, 0, //
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 1, 0,
-      ]),
-      child: image,
+    final tones = context.tones;
+    return FutureBuilder<Uint8List>(
+      future: _bytes,
+      builder: (context, snap) {
+        final bytes = snap.data;
+        if (bytes == null) {
+          return ColoredBox(
+            color: tones.surface,
+            child: snap.hasError ? Center(child: Icon(Icons.image_not_supported_outlined, color: tones.muted)) : null,
+          );
+        }
+        final image = Image.memory(bytes, fit: widget.fit, gaplessPlayback: true);
+        // In red light a full-colour picture would undo the whole mode.
+        if (!tones.red) return image;
+        return ColorFiltered(
+          colorFilter: const ColorFilter.matrix([
+            .3, .4, .1, 0, 0, //
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 1, 0,
+          ]),
+          child: image,
+        );
+      },
     );
   }
 }

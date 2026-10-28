@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../api/bortle_client.dart';
 import '../api/models.dart';
 import '../design.dart';
+import '../events.dart';
 import '../l10n.dart';
 import '../widgets.dart';
 import 'hold_screen.dart';
@@ -26,7 +27,7 @@ class TodayData {
       c.pipelines(waiting: true),
       c.runs(),
       c.gallery(),
-      c.events(limit: 8),
+      c.events(limit: 60),
     ]);
     final gallery = (results[3] as List<GalleryEntry>).where((g) => g.kind == 'developed').toList()
       ..sort((a, b) => (b.modified ?? DateTime(0)).compareTo(a.modified ?? DateTime(0)));
@@ -200,24 +201,10 @@ class _TodayScreenState extends State<TodayScreen> {
                         ),
                     ],
                   ),
-                if (d.events.isNotEmpty) SectionTitle(tr('Ereignisse', 'Events')),
-                for (final e in d.events)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 92,
-                          child: Text(
-                            e.at == null ? '' : when(e.at!),
-                            style: TextStyle(color: tones.muted, fontSize: 13),
-                          ),
-                        ),
-                        Expanded(child: Text(e.text, style: const TextStyle(fontSize: 14))),
-                      ],
-                    ),
-                  ),
+                if (d.events.isNotEmpty) ...[
+                  SectionTitle(tr('Ereignisse', 'Events')),
+                  EventTimeline(days: groupEvents(d.events)),
+                ],
               ],
             );
           },
@@ -251,4 +238,117 @@ class _Tile extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// The timeline: a heading per day, one card per day, one line per kind of event.
+class EventTimeline extends StatelessWidget {
+  const EventTimeline({required this.days, super.key});
+
+  final List<EventDay> days;
+
+  @override
+  Widget build(BuildContext context) {
+    final tones = context.tones;
+    final now = DateTime.now();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final day in days) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 6, left: 4),
+            child: Text(
+              day.label(now),
+              style: TextStyle(color: tones.muted, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+          Card(
+            child: Column(
+              children: [
+                for (final (i, g) in day.groups.indexed) ...[
+                  if (i > 0) const Divider(indent: 56),
+                  _EventLine(group: g),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _EventLine extends StatelessWidget {
+  const _EventLine({required this.group});
+
+  final EventGroup group;
+
+  @override
+  Widget build(BuildContext context) {
+    final tones = context.tones;
+    final color = switch (group.severity) {
+      'warning' => tones.warn,
+      'error' || 'critical' => tones.danger,
+      _ => switch (group.type) {
+        'frame_accepted' => tones.good,
+        'frame_borderline' => tones.warn,
+        'frame_rejected' => tones.danger,
+        _ => Theme.of(context).colorScheme.primary,
+      },
+    };
+    final icon = switch (group.type) {
+      'frame_accepted' => Icons.check_circle_outline,
+      'frame_borderline' => Icons.adjust,
+      'frame_rejected' => Icons.cancel_outlined,
+      'frame_captured' || 'frame_ingested' => Icons.photo_camera_outlined,
+      'plate_solved' => Icons.my_location,
+      'autofocus' => Icons.center_focus_strong_outlined,
+      'guiding' => Icons.track_changes,
+      'meridian_flip' => Icons.swap_horiz,
+      'weather_pause' => Icons.cloud_outlined,
+      'target_switch' => Icons.navigation_outlined,
+      'decision' => Icons.alt_route,
+      'error' => Icons.error_outline,
+      _ => Icons.circle_outlined,
+    };
+    final detail = group.detail;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(color: color.withValues(alpha: .14), shape: BoxShape.circle),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(group.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                if (detail != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      group.count > 1 ? tr('zuletzt: $detail', 'last: $detail') : detail,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: tones.muted, fontSize: 13),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            group.time,
+            style: TextStyle(color: tones.muted, fontSize: 13, fontFeatures: const [FontFeature.tabularFigures()]),
+          ),
+        ],
+      ),
+    );
+  }
 }

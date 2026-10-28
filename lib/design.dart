@@ -151,7 +151,10 @@ ThemeData bortleTheme({bool red = false}) {
       s?.copyWith(fontFamily: Sky.display, fontWeight: w, letterSpacing: -.2);
   const pill = StadiumBorder();
   const buttonSize = Size(48, 48);
-  const buttonText = TextStyle(fontWeight: FontWeight.w700, fontSize: 15);
+  // Component styles start from the platform's typography (Roboto, SF), so they keep
+  // its family rather than replacing the whole style with a bare one.
+  final body = text.bodyMedium ?? const TextStyle();
+  final buttonText = (text.labelLarge ?? body).copyWith(fontWeight: FontWeight.w700, fontSize: 15);
   final field = OutlineInputBorder(
     borderRadius: BorderRadius.circular(12),
     borderSide: BorderSide(color: tones.line),
@@ -204,7 +207,7 @@ ThemeData bortleTheme({bool red = false}) {
     ),
     listTileTheme: ListTileThemeData(
       iconColor: tones.muted,
-      subtitleTextStyle: TextStyle(color: tones.muted, fontSize: 14),
+      subtitleTextStyle: body.copyWith(color: tones.muted, fontSize: 14),
     ),
     dividerTheme: DividerThemeData(color: tones.line, space: 1),
     filledButtonTheme: FilledButtonThemeData(
@@ -243,7 +246,7 @@ ThemeData bortleTheme({bool red = false}) {
       enabledBorder: field,
       focusedBorder: field.copyWith(borderSide: BorderSide(color: scheme.primary, width: 2)),
       errorBorder: field.copyWith(borderSide: BorderSide(color: tones.danger)),
-      labelStyle: TextStyle(color: tones.muted),
+      labelStyle: body.copyWith(color: tones.muted),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: red ? Red.bg : const Color(0xF0070A16),
@@ -261,7 +264,7 @@ ThemeData bortleTheme({bool red = false}) {
     bottomSheetTheme: BottomSheetThemeData(backgroundColor: dialogBg, surfaceTintColor: Colors.transparent),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: red ? Red.surface2 : const Color(0xFF1C2648),
-      contentTextStyle: TextStyle(color: textColor),
+      contentTextStyle: body.copyWith(color: textColor),
       behavior: SnackBarBehavior.floating,
     ),
     progressIndicatorTheme: ProgressIndicatorThemeData(color: scheme.primary),
