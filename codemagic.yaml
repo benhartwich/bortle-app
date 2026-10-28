@@ -7,6 +7,10 @@
 # No key is ever written into this repository or the Codemagic UI by hand. The hub
 # starts "ios-release" on main through the Codemagic API.
 #
+# SECURITY: manual only. This repository is public and bortle_store holds team-wide
+# keys, so never add a `triggering` section, above all no pull_request trigger: a
+# build of a fork's pull request would expose them (docs/CONCEPT.md).
+#
 # Until the Flutter project exists (phase 1), both workflows fail at "Packages".
 # Android store builds are still open: the app needs its own upload keystore and the
 # first AAB uploaded by hand in the Play Console.

@@ -211,3 +211,18 @@ Still open:
 - Android builds.
 
 **Firebase:** one project per app.
+
+### Keys and a public repository
+
+This repository is public. The `bortle_store` group holds two keys that cover
+the whole team: the App Store Connect key and the key of the distribution
+certificate. A build that could be started from someone else's code would hand
+both keys to them. So:
+
+- `codemagic.yaml` stays manual only. It has no `triggering` section and
+  never a pull request trigger: a build of a pull request from a fork would
+  expose both keys.
+- GitHub Actions workflows never receive store keys or signing keys. A
+  workflow that runs on `pull_request` gets no secret at all, and
+  `pull_request_target` is not used.
+- A change to either rule needs the maintainer's explicit approval.
