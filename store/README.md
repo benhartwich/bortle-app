@@ -54,5 +54,8 @@ The API cannot fill these; they are answered once by hand.
   - once push ships: the FCM device token, for app functionality.
 - **Account deletion URL:** not required (the app does not create accounts), but
   https://bortle.eu/privacy names how.
-- **Category:** Tools (Play), Utilities (App Store); contact info@bortle.eu, website
-  https://bortle.eu.
+- **Category:** Photography (Play); Photo & Video, second Utilities (App Store). Contact
+  info@bortle.eu, website and support URL https://bortle.eu.
+- **App Store age rating:** none of the content questions apply (no web browser, no chat,
+  no other people's content).
+- **App Store review:** the same test account as for Play, in the review contact.
