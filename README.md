@@ -6,8 +6,17 @@ image. The app does everything the web cockpit does, against the hosted
 instance at bortle.eu or against your own install: you enter its address when
 you sign in.
 
-**Status: concept.** There is no code yet. [docs/CONCEPT.md](docs/CONCEPT.md)
-describes what will be built and in which order.
+**Status: stage 1 of 4, not yet in the stores.** Built so far: sign-in against
+bortle.eu or an own install, *Tonight* (night, holds, computing runs, latest
+images, events), answering a hold, *Gallery* with the runs and their progress,
+signed-in devices and the red light mode. Planning and the telescope tab follow;
+[docs/CONCEPT.md](docs/CONCEPT.md) has the order.
+
+```sh
+flutter pub get
+flutter analyze && flutter test
+flutter run            # against https://bortle.eu, or enter your own address
+```
 
 ## What it does
 

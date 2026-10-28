@@ -1,0 +1,88 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Same policy as Bortle's (github.com/benhartwich/bortle, renovate.json): the hosted Mend Renovate app, one grouped PR per ecosystem once a week in the Monday-night window, security fixes at any time, the owner assigned so GitHub actually notifies him.",
+    "Flutter packages (pub) are grouped; majors wait for approval. The Android and iOS build files (Gradle, CocoaPods) follow the same rules."
+  ],
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard"
+  ],
+  "mode": "full",
+  "timezone": "Europe/Berlin",
+  "schedule": [
+    "* 0-5 * * 1"
+  ],
+  "prConcurrentLimit": 3,
+  "labels": [
+    "dependencies"
+  ],
+  "assignees": [
+    "benhartwich"
+  ],
+  "reviewers": [
+    "benhartwich"
+  ],
+  "semanticCommits": "disabled",
+  "commitMessageAction": "update",
+  "minimumReleaseAge": "5 days",
+  "packageRules": [
+    {
+      "description": "Dart and Flutter packages",
+      "matchManagers": [
+        "pub"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "Flutter packages"
+    },
+    {
+      "description": "Android build (Gradle, Kotlin, AGP)",
+      "matchManagers": [
+        "gradle",
+        "gradle-wrapper"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "Android build"
+    },
+    {
+      "description": "The actions CI runs on",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": "Majors stay single and wait for approval on the dashboard",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true,
+      "labels": [
+        "dependencies",
+        "major"
+      ]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "schedule": [
+      "at any time"
+    ],
+    "minimumReleaseAge": null,
+    "labels": [
+      "dependencies",
+      "security"
+    ]
+  },
+  "osvVulnerabilityAlerts": true
+}

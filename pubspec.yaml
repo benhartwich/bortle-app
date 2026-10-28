@@ -1,0 +1,32 @@
+name: bortle_app
+description: "Bortle: plan, control and develop your astrophotography nights"
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Flutter's own texts (date picker, tooltips) in German and English (lib/l10n.dart).
+  flutter_localizations:
+    sdk: flutter
+  http: ^1.6.0
+  # The server address and this device's token, in the Keychain / Keystore.
+  flutter_secure_storage: ^11.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Display font, the same as allskyhub's (OFL-1.1, LICENSES/OFL-1.1.txt).
+  fonts:
+    - family: SpaceGrotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk.ttf
