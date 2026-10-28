@@ -54,7 +54,9 @@ Future<void> _loadFonts() async {
 
 /// A cockpit in the middle of a good night.
 MockClient _showcase(List<Map<String, dynamic>> pictures, String dir) {
-  final now = DateTime.now().toUtc();
+  // Tonight at 23:40: a store picture of a night should not read 09:00.
+  final today = DateTime.now();
+  final now = DateTime(today.year, today.month, today.day, 23, 40).toUtc();
   String ago(int minutes) => now.subtract(Duration(minutes: minutes)).toIso8601String();
   final events = <Map<String, Object?>>[
     for (var i = 0; i < 6; i++)
@@ -97,8 +99,59 @@ MockClient _showcase(List<Map<String, dynamic>> pictures, String dir) {
     'created_at': ago(90),
     'updated_at': ago(12),
   };
+  // A clear night for NGC 7000: the real planner answer, with tonight's window and clouds
+  // as a good night has them.
+  final plan = jsonDecode(File('test/fixtures/plan_ngc7000.json').readAsStringSync()) as Map<String, dynamic>;
+  final nightStart = DateTime.parse(plan['night_start'] as String);
+  plan['window_start'] = nightStart.toIso8601String();
+  plan['window_end'] = nightStart.add(const Duration(hours: 6, minutes: 40)).toIso8601String();
+  plan['window_hours'] = 6.7;
+  plan['moon_illumination'] = 0.18;
+  plan['warnings'] = <String>[];
+  for (final p in plan['points'] as List) {
+    (p as Map)['cloud_cover'] = 0.08;
+  }
+  final start = now.subtract(const Duration(hours: 3));
+  final frames = [
+    for (var i = 0; i < 46; i++)
+      {
+        'index': i,
+        'time': start.add(Duration(minutes: i * 4)).toIso8601String(),
+        'exposure_s': 240,
+        'filter': 'L-eXtreme',
+        'hfr': i == 17 ? 3.9 : 2.3 + 0.12 * ((i * 7) % 5) / 4 + (i > 24 ? -0.15 : 0),
+        'stars': i == 17 ? 610 : 1180 + (i * 37) % 160,
+        'rms_arcsec': 0.52 + ((i * 11) % 7) / 40,
+        'temperature': -10.0,
+        'focus_position': i > 24 ? 11790 : 11820,
+        'type': 'LIGHT',
+        'is_bad': i == 17,
+      },
+  ];
+  final live = {
+    'devices': {
+      for (final d in ['camera', 'mount', 'focuser', 'filterwheel', 'guider'])
+        d: {'connected': true, 'reachable': true},
+    },
+    'guiding': {
+      'reachable': true,
+      'active': true,
+      'rms_ra_arcsec': 0.41,
+      'rms_dec_arcsec': 0.46,
+      'rms_total_arcsec': 0.62,
+    },
+    'sequence': {'reachable': true, 'running': true, 'current': 'NGC 7000 > Imaging > Smart Exposure'},
+    'frames': {
+      'reachable': true,
+      'recent': [frames.last],
+      'progress': {'lights': 46, 'usable': 45, 'rejected': 1, 'usable_minutes': 180.0},
+    },
+  };
   return MockClient((request) async {
     final path = request.url.path;
+    if (path == '/api/bortle/nina/live/frame') {
+      return http.Response.bytes(File('$dir/${pictures[0]['file']}').readAsBytesSync(), 200);
+    }
     http.Response json(Object body) =>
         http.Response(jsonEncode(body), 200, headers: {'content-type': 'application/json; charset=utf-8'});
     if (path.startsWith('/api/bortle/data/')) {
@@ -107,7 +160,7 @@ MockClient _showcase(List<Map<String, dynamic>> pictures, String dir) {
     return switch (path) {
       '/api/app/info' => json({'name': 'bortle', 'version': '2026.10', 'api': 1, 'auth': 'password'}),
       '/api/app/session' => json({
-        'user': {'name': 'ben', 'admin': false},
+        'user': {'name': 'ben', 'admin': true},
       }),
       '/api/app/devices' => json({
         'devices': [
@@ -115,6 +168,13 @@ MockClient _showcase(List<Map<String, dynamic>> pictures, String dir) {
           {'id': 'b', 'label': 'Bortle App (iOS)', 'createdAt': ago(9000), 'lastUsedAt': ago(800)},
         ],
       }),
+      '/api/bortle/plan/suggest' => json([
+        {'name': 'NGC7000', 'type': 'NGC', 'common': 'Nordamerikanebel'},
+      ]),
+      '/api/bortle/plan' => json(plan),
+      '/api/bortle/develop/level' => json({'level': 'guarded'}),
+      '/api/bortle/nina/live' => json(live),
+      '/api/bortle/nina/frames' => json({'count': frames.length, 'median_hfr': 2.38, 'frames': frames}),
       '/api/bortle/night' => json({'active_session_id': 'NGC 7000', 'frame_session_id': 'NGC 7000'}),
       '/api/bortle/events' => json(events),
       '/api/bortle/develop/pipelines' => json([pipeline]),
@@ -229,6 +289,25 @@ void main() {
       await tester.pumpAndSettle();
       await shot('heute');
 
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Planen')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('object')), 'NGC 70');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('NGC7000 · Nordamerikanebel').last);
+      await tester.pumpAndSettle();
+      await shot('planen');
+
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Teleskop')));
+      await tester.pumpAndSettle();
+      await shot('teleskop');
+      await tester.tap(find.text('Verlauf'));
+      await tester.pumpAndSettle();
+      await shot('verlauf');
+      await tester.tap(find.text('Übersicht'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Heute')));
+      await tester.pumpAndSettle();
       await tester.tap(find.textContaining('Wartet auf dich'));
       await tester.pumpAndSettle();
       await shot('freigabe');

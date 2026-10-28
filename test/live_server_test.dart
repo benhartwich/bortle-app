@@ -15,7 +15,7 @@ void main() {
   final password = Platform.environment['BORTLE_E2E_PASSWORD'];
   final skip = url == null || login == null || password == null ? 'no live cockpit given' : null;
 
-  test('sign in, read everything stage 1 shows, sign out', () async {
+  test('sign in, read what stages 1 and 2 show, sign out', () async {
     final anonymous = BortleClient(baseUrl: url!);
     final info = await anonymous.info();
     expect(info, isNotNull);
@@ -33,6 +33,20 @@ void main() {
     await client.runs();
     await client.gallery();
     await client.events();
+
+    // stage 2: planning answers for this account's site …
+    expect(await client.suggest('NGC 70'), isNotEmpty);
+    await client.developLevel();
+    try {
+      final plan = await client.plan('NGC 7000');
+      expect(plan.object, 'NGC 7000');
+    } on BortleError catch (e) {
+      // an account without a site gets the planner's own words, not a crash
+      expect(e.status, 400);
+      expect(e.message, contains('Standort'));
+    }
+    // … and the operator's telescope stays closed to this (non-admin) account
+    await expectLater(client.live(), throwsA(isA<BortleError>().having((e) => e.status, 'status', 403)));
 
     await client.logout();
     await expectLater(client.me(), throwsA(isA<BortleError>().having((e) => e.unauthorized, 'unauthorized', isTrue)));

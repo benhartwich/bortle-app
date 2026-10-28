@@ -171,6 +171,68 @@ class BortleClient {
     return [for (final g in j) GalleryEntry.fromJson(g as Map)];
   }
 
+  // --- planning (stage 2) --------------------------------------------------------
+  // Site, horizon and tonight's plan are the signed-in account's: the proxy names it.
+
+  Future<List<Suggestion>> suggest(String q) async {
+    if (q.trim().length < 2) return const [];
+    final j = await _send('GET', '/api/bortle/plan/suggest', query: {'q': q.trim()}) as List;
+    return [for (final s in j) Suggestion.fromJson(s as Map)];
+  }
+
+  Future<NightPlan> plan(String object) async =>
+      NightPlan.fromJson(await _send('GET', '/api/bortle/plan', query: {'object': object}) as Map);
+
+  /// The account's default develop level: stepwise | guarded | auto.
+  Future<String> developLevel() async =>
+      '${((await _send('GET', '/api/bortle/develop/level')) as Map)['level'] ?? 'auto'}';
+
+  /// Builds the sequence and loads it into NINA; `start` also starts it. Only the
+  /// operator may (the instance's telescope is theirs); others get a 403.
+  Future<Map> sendToNina({
+    required NightPlan plan,
+    required double exposureS,
+    required int count,
+    required String developLevel,
+    bool start = false,
+  }) async =>
+      await _send(
+            'POST',
+            '/api/bortle/plan/nina',
+            body: {
+              'object': plan.object,
+              'ra_deg': plan.raDeg,
+              'dec_deg': plan.decDeg,
+              'exposure_s': exposureS,
+              'count': count,
+              'window_end': plan.windowEnd?.toIso8601String(),
+              'develop_level': developLevel,
+              'start': start,
+            },
+          )
+          as Map;
+
+  // --- the telescope (stage 2) ------------------------------------------------------
+
+  Future<LiveSnapshot> live() async => LiveSnapshot.fromJson(await _send('GET', '/api/bortle/nina/live') as Map);
+
+  Future<FrameHistory> frames({int limit = 300}) async =>
+      FrameHistory.fromJson(await _send('GET', '/api/bortle/nina/frames', query: {'limit': '$limit'}) as Map);
+
+  /// One of tonight's frames as NINA renders it (stretched, a look, not a measurement).
+  Future<Uint8List> liveFrame({int index = -1, int width = 900}) async {
+    final response = await _http
+        .get(_uri('/api/bortle/nina/live/frame', {'index': '$index', 'width': '$width'}), headers: authHeaders)
+        .timeout(const Duration(seconds: 60));
+    if (response.statusCode != 200) throw BortleError(response.statusCode, 'HTTP ${response.statusCode}');
+    return response.bodyBytes;
+  }
+
+  /// One of NINA's own operations (docs/CONCEPT.md, "Control and safety"). The app
+  /// asks before calling this; a refusal comes back as the server's words.
+  Future<Map> control(String action, [Map<String, Object?> params = const {}]) async =>
+      await _send('POST', '/api/bortle/nina/control', body: {'action': action, ...params}) as Map;
+
   /// A preview or result file under the data dir, as the cockpit serves it.
   String dataUrl(String relative) => '$baseUrl/api/bortle/data/$relative';
 

@@ -136,8 +136,8 @@ class _MoreScreenState extends State<MoreScreen> {
           const SizedBox(height: 16),
           Text(
             tr(
-              'Sessions, Upload, Rig-Steuerung und die Einstellungen kommen in den nächsten Stufen der App; bis dahin sind sie im Browser-Cockpit.',
-              'Sessions, upload, rig control and settings come in the app’s next stages; until then they are in the browser cockpit.',
+              'Sessions, Upload, die Gerätesteuerung und die Einstellungen kommen in den nächsten Stufen der App; bis dahin sind sie im Browser-Cockpit.',
+              'Sessions, upload, device control and settings come in the app’s next stages; until then they are in the browser cockpit.',
             ),
             style: TextStyle(color: tones.muted, fontSize: 13),
           ),

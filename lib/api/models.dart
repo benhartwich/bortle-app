@@ -249,3 +249,237 @@ class GalleryEntry {
 
   String? get preview => previews['full'] ?? (previews.isEmpty ? null : previews.values.first);
 }
+
+// --- planning -------------------------------------------------------------------
+
+double? _dbl(Object? v) => v is num ? v.toDouble() : null;
+
+class Suggestion {
+  const Suggestion(this.name, this.type, this.common);
+
+  factory Suggestion.fromJson(Map j) => Suggestion('${j['name']}', _str(j['type']), _str(j['common']));
+
+  final String name;
+  final String? type;
+  final String? common;
+
+  String get label => common == null ? name : '$name · $common';
+}
+
+class PlanPoint {
+  const PlanPoint(this.time, this.altitude, this.sunAltitude, this.cloudCover, this.horizon);
+
+  factory PlanPoint.fromJson(Map j) => PlanPoint(
+    _date(j['time'])!,
+    _dbl(j['altitude_deg']) ?? 0,
+    _dbl(j['sun_altitude_deg']) ?? 0,
+    _dbl(j['cloud_cover']),
+    _dbl(j['horizon_altitude_deg']),
+  );
+
+  final DateTime time;
+  final double altitude;
+  final double sunAltitude;
+
+  /// 0..1, or null where the forecast ends.
+  final double? cloudCover;
+
+  /// The user's horizon at this azimuth, if they gave one.
+  final double? horizon;
+}
+
+class NightPlan {
+  const NightPlan({
+    required this.object,
+    required this.raDeg,
+    required this.decDeg,
+    this.nightStart,
+    this.nightEnd,
+    this.windowStart,
+    this.windowEnd,
+    this.windowHours = 0,
+    this.maxAltitude,
+    this.maxAltitudeTime,
+    this.moonIllumination,
+    this.moonSeparation,
+    this.points = const [],
+    this.warnings = const [],
+  });
+
+  factory NightPlan.fromJson(Map j) => NightPlan(
+    object: '${j['object']}',
+    raDeg: _dbl(j['ra_deg']) ?? 0,
+    decDeg: _dbl(j['dec_deg']) ?? 0,
+    nightStart: _date(j['night_start']),
+    nightEnd: _date(j['night_end']),
+    windowStart: _date(j['window_start']),
+    windowEnd: _date(j['window_end']),
+    windowHours: _dbl(j['window_hours']) ?? 0,
+    maxAltitude: _dbl(j['max_altitude_deg']),
+    maxAltitudeTime: _date(j['max_altitude_time']),
+    moonIllumination: _dbl(j['moon_illumination']),
+    moonSeparation: _dbl(j['moon_separation_deg']),
+    points: [for (final p in (j['points'] as List? ?? const [])) PlanPoint.fromJson(p as Map)],
+    warnings: [for (final w in (j['warnings'] as List? ?? const [])) '$w'],
+  );
+
+  final String object;
+  final double raDeg;
+  final double decDeg;
+  final DateTime? nightStart;
+  final DateTime? nightEnd;
+  final DateTime? windowStart;
+  final DateTime? windowEnd;
+  final double windowHours;
+  final double? maxAltitude;
+  final DateTime? maxAltitudeTime;
+  final double? moonIllumination;
+  final double? moonSeparation;
+  final List<PlanPoint> points;
+  final List<String> warnings;
+
+  /// Mean forecast cloud cover inside the window (or the dark hours), 0..1.
+  double? get clouds {
+    final from = windowStart ?? nightStart, to = windowEnd ?? nightEnd;
+    final inside = [
+      for (final p in points)
+        if (p.cloudCover != null && (from == null || !p.time.isBefore(from)) && (to == null || !p.time.isAfter(to)))
+          p.cloudCover!,
+    ];
+    if (inside.isEmpty) return null;
+    return inside.reduce((a, b) => a + b) / inside.length;
+  }
+}
+
+// --- the telescope ------------------------------------------------------------
+
+class LiveFrame {
+  const LiveFrame({
+    required this.index,
+    this.at,
+    this.hfr,
+    this.stars,
+    this.rmsArcsec,
+    this.exposure,
+    this.filter,
+    this.temperature,
+    this.focus,
+    this.type,
+    this.bad = false,
+  });
+
+  factory LiveFrame.fromJson(Map j) => LiveFrame(
+    index: _int(j['index']),
+    at: _date(j['time'] ?? j['at']),
+    hfr: _dbl(j['hfr']),
+    stars: (j['stars'] as num?)?.toInt(),
+    rmsArcsec: _dbl(j['rms_arcsec']),
+    exposure: _dbl(j['exposure_s']),
+    filter: _str(j['filter']),
+    temperature: _dbl(j['temperature']),
+    focus: (j['focus_position'] as num?)?.toInt(),
+    type: _str(j['type']),
+    bad: j['is_bad'] == true,
+  );
+
+  final int index;
+  final DateTime? at;
+  final double? hfr;
+  final int? stars;
+  final double? rmsArcsec;
+  final double? exposure;
+  final String? filter;
+  final double? temperature;
+  final int? focus;
+  final String? type;
+
+  /// HFR above 1.5× this night's own median (the server measures it).
+  final bool bad;
+}
+
+class FrameHistory {
+  const FrameHistory(this.frames, this.medianHfr);
+
+  factory FrameHistory.fromJson(Map j) => FrameHistory([
+    for (final f in (j['frames'] as List? ?? const [])) LiveFrame.fromJson(f as Map),
+  ], _dbl(j['median_hfr']));
+
+  final List<LiveFrame> frames;
+  final double? medianHfr;
+}
+
+class DeviceState {
+  const DeviceState(this.key, {required this.connected, required this.reachable, this.error});
+
+  final String key;
+  final bool connected;
+  final bool reachable;
+  final String? error;
+}
+
+class LiveSnapshot {
+  const LiveSnapshot({
+    required this.devices,
+    required this.ninaReachable,
+    this.rmsTotal,
+    this.rmsRa,
+    this.rmsDec,
+    this.guiding = false,
+    this.sequenceRunning = false,
+    this.currentStep,
+    this.lights,
+    this.usable,
+    this.usableMinutes,
+    this.recent = const [],
+  });
+
+  factory LiveSnapshot.fromJson(Map j) {
+    final devices = (j['devices'] as Map?) ?? const {};
+    final guiding = (j['guiding'] as Map?) ?? const {};
+    final sequence = (j['sequence'] as Map?) ?? const {};
+    final frames = (j['frames'] as Map?) ?? const {};
+    final progress = frames['progress'] as Map?;
+    final states = [
+      for (final e in devices.entries)
+        DeviceState(
+          '${e.key}',
+          connected: (e.value as Map)['connected'] == true,
+          reachable: (e.value as Map)['reachable'] == true,
+          error: _str((e.value as Map)['error']),
+        ),
+    ];
+    return LiveSnapshot(
+      devices: states,
+      ninaReachable: states.any((d) => d.reachable) || sequence['reachable'] == true,
+      rmsTotal: _dbl(guiding['rms_total_arcsec']),
+      rmsRa: _dbl(guiding['rms_ra_arcsec']),
+      rmsDec: _dbl(guiding['rms_dec_arcsec']),
+      guiding: guiding['active'] == true,
+      sequenceRunning: sequence['running'] == true,
+      currentStep: _str(sequence['current']),
+      lights: (progress?['lights'] as num?)?.toInt(),
+      usable: (progress?['usable'] as num?)?.toInt(),
+      usableMinutes: _dbl(progress?['usable_minutes']),
+      recent: [for (final f in (frames['recent'] as List? ?? const [])) LiveFrame.fromJson(f as Map)],
+    );
+  }
+
+  final List<DeviceState> devices;
+
+  /// Whether NINA answered at all; false by day or when the rig is off.
+  final bool ninaReachable;
+  final double? rmsTotal;
+  final double? rmsRa;
+  final double? rmsDec;
+  final bool guiding;
+  final bool sequenceRunning;
+
+  /// "NGC 7000 > Imaging > Smart Exposure", the innermost running instruction.
+  final String? currentStep;
+  final int? lights;
+  final int? usable;
+  final double? usableMinutes;
+  final List<LiveFrame> recent;
+
+  LiveFrame? get latest => recent.isEmpty ? null : recent.last;
+}

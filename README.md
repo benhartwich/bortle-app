@@ -6,10 +6,12 @@ image. The app does everything the web cockpit does, against the hosted
 instance at bortle.eu or against your own install: you enter its address when
 you sign in.
 
-**Status: stage 1 of 4, not yet in the stores.** Built so far: sign-in against
-bortle.eu or an own install, *Tonight* (night, holds, computing runs, latest
-images, events), answering a hold, *Gallery* with the runs and their progress,
-signed-in devices and the red light mode. Planning and the telescope tab follow;
+**Status: stage 2 of 4, not yet in the stores.** Built: sign-in against bortle.eu
+or an own install, *Tonight*, answering holds, *Gallery* with the runs and their
+progress, *Plan* (altitude, moon, clouds, the sequence to N.I.N.A. with the develop
+level), the *Telescope* tab with overview, every frame of the night and its curves,
+stopping the sequence and ending the night through N.I.N.A., signed-in devices and
+the red light mode. Device control (stage 3) and push are next;
 [docs/CONCEPT.md](docs/CONCEPT.md) has the order.
 
 ```sh

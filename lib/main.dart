@@ -9,6 +9,8 @@ import 'l10n.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/more_screen.dart';
+import 'screens/plan_screen.dart';
+import 'screens/telescope_screen.dart';
 import 'screens/today_screen.dart';
 
 void main() {
@@ -158,19 +160,12 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final pages = [
       TodayScreen(client: widget.client, onRedLight: () => widget.onRedLight(!widget.redLight)),
-      _ComingSoon(
-        title: tr('Planen', 'Plan'),
-        text: tr(
-          'Planen kommt in Stufe 2 der App. Bis dahin plant das Browser-Cockpit die Nacht und schickt die Sequenz an NINA.',
-          'Planning arrives in stage 2 of the app. Until then the browser cockpit plans the night and sends the sequence to NINA.',
-        ),
-      ),
-      _ComingSoon(
-        title: tr('Teleskop', 'Telescope'),
-        text: tr(
-          'Die Nacht am Teleskop – Bilder, Verlauf und Steuerung – kommt in Stufe 2 und 3. Die Steuerung wird erst freigeschaltet, wenn sie an echter Hardware bewiesen ist.',
-          'The night at the telescope – frames, history and control – arrives in stages 2 and 3. Control is enabled only once it is proven on real hardware.',
-        ),
+      PlanScreen(client: widget.client, me: widget.me),
+      TelescopeScreen(
+        client: widget.client,
+        me: widget.me,
+        active: _tab == 2,
+        onRedLight: () => widget.onRedLight(!widget.redLight),
       ),
       GalleryScreen(client: widget.client),
       MoreScreen(
@@ -214,26 +209,4 @@ class _HomeShellState extends State<HomeShell> {
       ),
     );
   }
-}
-
-class _ComingSoon extends StatelessWidget {
-  const _ComingSoon({required this.title, required this.text});
-
-  final String title;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(title)),
-    body: Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: context.tones.muted),
-        ),
-      ),
-    ),
-  );
 }
