@@ -175,6 +175,26 @@ Bortle uses allskyhub's public API (`/api/v1/public`, no auth):
 
 ## Build and release
 
-- Codemagic builds both platforms, as it does for allskyhub.
+- Codemagic builds both platforms, as it does for allskyhub. It gets an app
+  of its own that points at this repository, with its own `codemagic.yaml`.
 - Signing secrets stay out of this repository.
 - A test channel ships through a dart-define. There are no flavors.
+
+The store setup is shared with allskyhub only at the account level. Every key
+is the app's own, so either app can be revoked without touching the other.
+The maintainer enters each key in Bortle's admin. The server stores it once
+and never shows it again, and it is never copied from allskyhub's store.
+
+- **App Store Connect:**
+  - The team is the same.
+  - The API key is a separate one for Bortle, with the role App Manager.
+    App Store Connect keys cover the whole team, so separating them by key
+    is the only separation there is.
+  - Before the first build, register the bundle id `eu.bortle.app` and create
+    the App Store record.
+- **Google Play:**
+  - A separate service account, with access to `eu.bortle.app` only.
+  - A separate upload keystore.
+  - The first AAB is uploaded by hand in the Play Console; the API works only
+    after that.
+- **Firebase:** one project per app.
