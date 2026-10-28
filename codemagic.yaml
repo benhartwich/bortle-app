@@ -1,0 +1,78 @@
+# Codemagic builds of the Bortle app. The Flutter project lives at the repository root.
+#
+# The iOS release reads its keys from the secure variable group "bortle_store". The
+# allskyhub hub fills it from its vault (admin → "bortle"): the App Store Connect API key
+# of the shared team and the private key of the team's iOS distribution certificate
+# (Apple limits distribution certificates per team, so both apps sign with the same one).
+# No key is ever written into this repository or the Codemagic UI by hand. The hub
+# starts "ios-release" on main through the Codemagic API.
+#
+# Until the Flutter project exists (phase 1), both workflows fail at "Packages".
+# Android store builds are still open: the app needs its own upload keystore and the
+# first AAB uploaded by hand in the Play Console.
+
+definitions:
+  flutter: &flutter
+    flutter: stable
+  scripts:
+    - &get
+      name: Packages
+      script: flutter pub get
+    - &check
+      name: Analyze and test
+      script: |
+        dart format --output=none --set-exit-if-changed lib test
+        flutter analyze
+        flutter test
+
+workflows:
+  # Manual: analyze, test, debug APK, unsigned iOS build.
+  app-check:
+    name: App check
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      <<: *flutter
+      xcode: latest
+    scripts:
+      - *get
+      - *check
+      - name: Android debug APK
+        script: flutter build apk --debug
+      - name: iOS build without signing
+        script: flutter build ios --release --no-codesign
+    artifacts:
+      - build/app/outputs/flutter-apk/app-debug.apk
+
+  # Signed iOS build to TestFlight. The profile comes from Apple with the team key;
+  # --create makes it on the first run, with the shared distribution certificate.
+  ios-release:
+    name: iOS release
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      <<: *flutter
+      xcode: latest
+      groups: [bortle_store]
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: eu.bortle.app
+    scripts:
+      - *get
+      - *check
+      - name: Signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files eu.bortle.app --type IOS_APP_STORE --create --certificate-key=@env:CERTIFICATE_PRIVATE_KEY
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: IPA
+        script: flutter build ipa --release --build-number=$BUILD_NUMBER --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true

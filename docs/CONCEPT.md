@@ -180,21 +180,34 @@ Bortle uses allskyhub's public API (`/api/v1/public`, no auth):
 - Signing secrets stay out of this repository.
 - A test channel ships through a dart-define. There are no flavors.
 
-The store setup is shared with allskyhub only at the account level. Every key
-is the app's own, so either app can be revoked without touching the other.
-The maintainer enters each key in Bortle's admin. The server stores it once
-and never shows it again, and it is never copied from allskyhub's store.
+The store accounts are shared with allskyhub. The maintainer decided on
+2026-10-28 to share the keys as well:
+- One App Store Connect API key and one Codemagic API key serve both apps.
+- The team's iOS distribution certificate is shared too. Apple limits how many
+  distribution certificates a team may have.
 
-- **App Store Connect:**
-  - The team is the same.
-  - The API key is a separate one for Bortle, with the role App Manager.
-    App Store Connect keys cover the whole team, so separating them by key
-    is the only separation there is.
-  - Before the first build, register the bundle id `eu.bortle.app` and create
-    the App Store record.
-- **Google Play:**
-  - A separate service account, with access to `eu.bortle.app` only.
-  - A separate upload keystore.
-  - The first AAB is uploaded by hand in the Play Console; the API works only
-    after that.
-- **Firebase:** one project per app.
+No key is copied anywhere. The allskyhub hub keeps them in its vault and, under
+admin → "bortle", does three things:
+- registers the bundle id `eu.bortle.app` with Apple and reports whether the
+  App Store record exists;
+- adds a Codemagic app for this repository in the same team, and fills its
+  variable group `bortle_store` with these keys:
+  - `APP_STORE_CONNECT_PRIVATE_KEY`
+  - `APP_STORE_CONNECT_KEY_IDENTIFIER`
+  - `APP_STORE_CONNECT_ISSUER_ID`
+  - `CERTIFICATE_PRIVATE_KEY`
+- starts the workflow `ios-release` on `main`.
+
+`codemagic.yaml` at the repository root reads that group.
+
+Done by the maintainer, by hand:
+- create the App Store record for `eu.bortle.app`;
+- for Android, a separate upload keystore, and the first AAB uploaded by hand
+  in the Play Console. The API works only after that.
+
+Still open:
+- pushing the store listing,
+- TestFlight groups,
+- Android builds.
+
+**Firebase:** one project per app.
