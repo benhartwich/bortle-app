@@ -15,21 +15,32 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "eu.bortle.app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    // Store builds sign with the upload key the allskyhub hub keeps for this app and hands
+    // to the build through the environment (as allskyhub's own app does); never a file in
+    // this repository. Without it a release build signs with the debug key, so
+    // `flutter run --release` and tool/build_test_apk.sh work.
+    val keystore = System.getenv("BORTLE_KEYSTORE") ?: System.getenv("CM_KEYSTORE_PATH")
+    signingConfigs {
+        if (keystore != null) {
+            create("release") {
+                storeFile = File(keystore)
+                storePassword = System.getenv("BORTLE_KEYSTORE_PASSWORD") ?: System.getenv("CM_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("BORTLE_KEY_ALIAS") ?: System.getenv("CM_KEY_ALIAS")
+                keyPassword = System.getenv("BORTLE_KEY_PASSWORD") ?: System.getenv("CM_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 }
