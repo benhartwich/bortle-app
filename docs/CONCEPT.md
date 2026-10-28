@@ -150,6 +150,23 @@ The token is registered with `PUT /api/app/push-token {token, platform}` and
 dropped with `DELETE`. It hangs off the device token, so signing a device out
 also stops its pushes.
 
+Who sends, and where the app's Firebase identifiers come from (agreed with
+allskyhub, 2026-10-28):
+- The cockpit sends through FCM HTTP v1 with the shared service account, which
+  Ben uploads in Bortle's admin. It is kept like the other secrets of the
+  cockpit (file 0600 under the auth directory), shown only by its address.
+- Only an instance that holds that service account can send to the store app,
+  so push works against bortle.eu. An own install gets none for now; a relay
+  through bortle.eu would be the way to it, later and only with Ben's yes.
+- The app's FirebaseOptions (project, sender, app ids and API keys of
+  eu.bortle.app) go in at build time as `--dart-define`s, not at run time from
+  the server as in allskyhub: the app may be signed in to any server, and the
+  Firebase project belongs to the app, not to the server. They are public
+  identifiers but stay out of the repository like allskyhub's: the hub passes
+  them to its Android build and keeps them in the Codemagic group for iOS. A
+  build without them simply has no push.
+- iOS: `aps-environment` production entitlement, iOS 15 at least (Firebase).
+
 Until push exists, the app refreshes when it is opened and polls the Telescope
 tab while it is visible.
 
