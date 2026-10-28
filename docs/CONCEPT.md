@@ -133,6 +133,23 @@ notification when:
 - the plugin queue has stopped draining,
 - the clouds came in (see allskyhub below).
 
+The message format is agreed with allskyhub:
+- a `notification` block with `title` and `body`, in the user's language, so the
+  OS shows it even when the app is closed. Data-only messages need a running app
+  on iOS and are delayed in Android's doze;
+- `data` with:
+  - `kind`: `hold_waiting`, `run_finished`, `run_failed`, `night_ended`,
+    `plugin_queue_stuck` or `clouds`;
+  - `path`: the deep link, e.g. `/holds/<id>`, `/runs/<name>` or `/telescope`;
+  - `id`: replaces an earlier message about the same thing;
+  - `sent_at`: ISO UTC;
+  - `server`: the base URL. Bortle needs it because one app may be signed in to
+    bortle.eu or to an own install.
+
+The token is registered with `PUT /api/app/push-token {token, platform}` and
+dropped with `DELETE`. It hangs off the device token, so signing a device out
+also stops its pushes.
+
 Until push exists, the app refreshes when it is opened and polls the Telescope
 tab while it is visible.
 
