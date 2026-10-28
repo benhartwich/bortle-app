@@ -2,7 +2,7 @@ name: bortle_app
 description: "Bortle: plan, control and develop your astrophotography nights"
 publish_to: 'none'
 
-version: 0.2.0+3
+version: 0.3.0+4
 
 environment:
   sdk: ^3.12.0
@@ -16,6 +16,10 @@ dependencies:
   http: ^1.6.0
   # The server address and this device's token, in the Keychain / Keystore.
   flutter_secure_storage: ^11.2.0
+  # Push through Firebase Cloud Messaging, in the project shared with allskyhub
+  # (docs/CONCEPT.md, "Push"); the identifiers come in as --dart-defines at build time.
+  firebase_core: ^5.1.0
+  firebase_messaging: ^17.0.1
 
 dev_dependencies:
   flutter_test:

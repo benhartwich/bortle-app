@@ -135,6 +135,13 @@ class BortleClient {
 
   Future<void> revokeDevice(String id) async => _send('DELETE', '/api/app/devices', query: {'id': id});
 
+  /// Push for this device: the cockpit sends to [token] in [lang] until the device signs
+  /// out or [unregisterPush] (docs/CONCEPT.md, "Push").
+  Future<void> registerPush(String token, String platform, String lang) async =>
+      _send('PUT', '/api/app/push-token', body: {'token': token, 'platform': platform, 'lang': lang});
+
+  Future<void> unregisterPush() async => _send('DELETE', '/api/app/push-token');
+
   // --- Bortle through the cockpit proxy -----------------------------------------
 
   Future<NightState> night() async => NightState.fromJson(await _send('GET', '/api/bortle/night') as Map);

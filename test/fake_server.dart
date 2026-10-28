@@ -24,6 +24,8 @@ class FakeServer {
   bool cancelled = false;
   bool signedOut = false;
   final revoked = <String>[];
+  Map<String, Object?>? pushRegistration;
+  bool pushDropped = false;
 
   static const token = 'bat_test-token';
 
@@ -56,6 +58,12 @@ class FakeServer {
         return json({
           'user': {'name': 'ben', 'admin': admin},
         });
+      case ('PUT', '/api/app/push-token'):
+        pushRegistration = jsonDecode(request.body) as Map<String, Object?>;
+        return json({'ok': true});
+      case ('DELETE', '/api/app/push-token'):
+        pushDropped = true;
+        return json({'ok': true});
       case ('DELETE', '/api/app/session'):
         signedOut = true;
         return json({'ok': true});

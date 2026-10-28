@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -6,14 +8,18 @@ import 'api/models.dart';
 import 'api/session_store.dart';
 import 'design.dart';
 import 'l10n.dart';
+import 'push.dart';
 import 'screens/gallery_screen.dart';
+import 'screens/hold_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/more_screen.dart';
 import 'screens/plan_screen.dart';
+import 'screens/run_screen.dart';
 import 'screens/telescope_screen.dart';
 import 'screens/today_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(
     BortleApp(
       store: SecureSessionStore(),
@@ -73,6 +79,7 @@ class _BortleAppState extends State<BortleApp> {
       _lastServer = session?.serverUrl;
       _loading = false;
     });
+    if (client != null && client.token != null) unawaited(pushService.register(client));
     if (store is SecureSessionStore && session == null) {
       final last = await store.lastServer();
       if (mounted) setState(() => _lastServer = last);
@@ -86,11 +93,15 @@ class _BortleAppState extends State<BortleApp> {
       _me = me;
       _lastServer = client.baseUrl;
     });
+    unawaited(pushService.register(client));
   }
 
   Future<void> _signOut() async {
     try {
-      if (_client?.token != null) await _client!.logout();
+      if (_client?.token != null) {
+        await pushService.unregister(_client!);
+        await _client!.logout();
+      }
     } on BortleError {
       // Offline or already revoked: forget it locally anyway.
     }
@@ -155,6 +166,59 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _tab = 0;
+  StreamSubscription<PushTap>? _taps;
+
+  @override
+  void initState() {
+    super.initState();
+    _taps = pushService.taps.listen(_onPush);
+  }
+
+  @override
+  void dispose() {
+    _taps?.cancel();
+    super.dispose();
+  }
+
+  String _trim(String url) => url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+
+  void _onPush(PushTap tap) {
+    // A message from another server this phone was once signed in to: not ours to open.
+    if (tap.server != null && _trim(tap.server!) != _trim(widget.client.baseUrl)) return;
+    if (!tap.opened) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text([tap.title, tap.body].whereType<String>().join(' – ')),
+          action: SnackBarAction(label: tr('Öffnen', 'Open'), onPressed: () => _open(tap.path)),
+        ),
+      );
+      return;
+    }
+    _open(tap.path);
+  }
+
+  /// The deep links the server sends: `/holds/<id>`, `/runs/<name>`, `/telescope`, else Tonight.
+  void _open(String path) {
+    final parts = Uri.parse(path).pathSegments;
+    final nav = Navigator.maybeOf(context);
+    if (parts.length == 2 && parts[0] == 'holds' && nav != null) {
+      setState(() => _tab = 0);
+      nav.push(
+        MaterialPageRoute<void>(
+          builder: (_) => HoldScreen(client: widget.client, pipelineId: parts[1]),
+        ),
+      );
+    } else if (parts.length == 2 && parts[0] == 'runs' && nav != null) {
+      setState(() => _tab = 3);
+      nav.push(
+        MaterialPageRoute<void>(
+          builder: (_) => RunScreen(client: widget.client, name: parts[1]),
+        ),
+      );
+    } else {
+      setState(() => _tab = parts.isNotEmpty && parts[0] == 'telescope' ? 2 : 0);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

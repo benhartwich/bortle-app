@@ -70,8 +70,17 @@ workflows:
           app-store-connect fetch-signing-files eu.bortle.app --type IOS_APP_STORE --create --certificate-key=@env:CERTIFICATE_PRIVATE_KEY
           keychain add-certificates
           xcode-project use-profiles
+      # Push: the app's public Firebase identifiers, plain variables in bortle_store that
+      # the hub writes from Ben's GoogleService-Info.plist. Empty ones build an app
+      # without push (lib/push.dart).
       - name: IPA
-        script: flutter build ipa --release --build-number=$BUILD_NUMBER --export-options-plist=/Users/builder/export_options.plist
+        script: |
+          flutter build ipa --release --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist \
+            --dart-define=BORTLE_FCM_PROJECT_ID="${BORTLE_FCM_PROJECT_ID:-}" \
+            --dart-define=BORTLE_FCM_SENDER_ID="${BORTLE_FCM_SENDER_ID:-}" \
+            --dart-define=BORTLE_FCM_IOS_APP_ID="${BORTLE_FCM_IOS_APP_ID:-}" \
+            --dart-define=BORTLE_FCM_IOS_API_KEY="${BORTLE_FCM_IOS_API_KEY:-}"
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:

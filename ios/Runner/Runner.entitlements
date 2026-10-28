@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Push notifications through Firebase (docs/CONCEPT.md, "Push"); the allskyhub hub
+	     switches the capability on for the bundle id ("bortle: prüfen und einrichten"). -->
+	<key>aps-environment</key>
+	<string>production</string>
+</dict>
+</plist>
