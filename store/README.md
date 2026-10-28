@@ -28,8 +28,8 @@ SCREENSHOT_IMAGES=<dir with images.json + jpgs> SCREENSHOT_OUT=store \
   flutter test test/screenshots_test.dart
 ```
 
-The texts say what the app does today. Device control and push are named as missing
-until they ship; change the descriptions in the same commit that ships them.
+The texts say what the app does today. Device control is named as missing until it
+ships; change the descriptions in the same commit that ships them.
 
 ## What only the Play Console takes
 
@@ -51,7 +51,7 @@ The API cannot fill these; they are answered once by hand.
     may use plain HTTP, which the app warns about outside the home network.
   - deletion: the user revokes a device under Profile; the account is deleted on request
     to info@bortle.eu.
-  - once push ships: the FCM device token, for app functionality.
+  - the FCM device token, for app functionality (push).
 - **Account deletion URL:** not required (the app does not create accounts), but
   https://bortle.eu/privacy names how.
 - **Category:** Photography (Play); Photo & Video, second Utilities (App Store). Contact

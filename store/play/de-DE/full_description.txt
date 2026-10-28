@@ -17,11 +17,14 @@ PLANEN
 GALERIE
 • Fertige Bilder und das Protokoll jedes Laufs, Schritt für Schritt
 
+BENACHRICHTIGUNGEN
+• Wenn eine Freigabe auf dich wartet, ein Bild fertig oder ein Lauf fehlgeschlagen ist und wenn die Nacht vorbei ist (mit bortle.eu)
+
 FÜR DIE NACHT DRAUSSEN
 • Rotlicht-Modus, der die Dunkeladaption schont
 
 Was du brauchst: ein Konto auf bortle.eu oder eine eigene Bortle-Installation, deren Adresse du beim Anmelden einträgst. Steuern kann die App nur das Teleskop, das du selbst betreibst. Die Sicherheit der Montierung (Parken, Abbruch, Meridian-Flip) bleibt in N.I.N.A., die App greift darin nicht ein.
 
-Noch nicht dabei: die einzelne Steuerung von Montierung, Kamera, Fokus und Filterrad sowie Push-Benachrichtigungen. Beides folgt.
+Noch nicht dabei: die einzelne Steuerung von Montierung, Kamera, Fokus und Filterrad. Sie folgt.
 
 Keine Tracker, keine Werbung. Bortle ist Open Source: github.com/benhartwich/bortle-app

@@ -17,11 +17,14 @@ PLAN
 GALLERY
 • Finished images and the log of every run, step by step
 
+NOTIFICATIONS
+• When an approval waits for you, an image is done or a run failed, and when the night is over (with bortle.eu)
+
 FOR THE NIGHT OUTSIDE
 • Red light mode that keeps your dark adaptation
 
 What you need: an account on bortle.eu or your own Bortle install, whose address you enter when you sign in. The app controls only a telescope you run yourself. Mount safety (parking, aborts, meridian flips) stays in N.I.N.A.; the app does not interfere with it.
 
-Not in yet: controlling mount, camera, focuser and filter wheel one by one, and push notifications. Both are coming.
+Not in yet: controlling mount, camera, focuser and filter wheel one by one. It is coming.
 
 No trackers, no ads. Bortle is open source: github.com/benhartwich/bortle-app
