@@ -1,0 +1,27 @@
+Bortle ist das Cockpit für Astrofotografie: planen, aufnehmen, Qualität prüfen, stacken und entwickeln bis zum fertigen Bild. Die App bringt dein Bortle aufs Handy, ob auf bortle.eu oder auf deinem eigenen Server.
+
+HEUTE NACHT
+• Zustand der Nacht, laufende Entwicklungen mit Fortschritt und Restzeit
+• Ereignisse der Session, nach Tag gruppiert: Frames, Autofokus, Plate Solve, Meridian-Flip
+• Freigaben: wo Bortle vor dem nächsten Schritt fragt, antwortest du direkt
+
+AM TELESKOP (mit N.I.N.A.)
+• Das letzte Bild der Kamera mit HFR, Sternzahl und Guiding
+• Alle Frames der Nacht und ihr Verlauf: HFR, Sterne, Guiding, Temperatur, Fokus
+• Sequenz anhalten oder die Nacht über N.I.N.A. beenden, immer mit Rückfrage
+
+PLANEN
+• Ein Objekt suchen und seine Höhe über deinem Horizont heute Nacht sehen, mit Mond und Wolken
+• Die fertige Sequenz an N.I.N.A. schicken, mit der gewünschten Entwicklungsstufe
+
+GALERIE
+• Fertige Bilder und das Protokoll jedes Laufs, Schritt für Schritt
+
+FÜR DIE NACHT DRAUSSEN
+• Rotlicht-Modus, der die Dunkeladaption schont
+
+Was du brauchst: ein Konto auf bortle.eu oder eine eigene Bortle-Installation, deren Adresse du beim Anmelden einträgst. Steuern kann die App nur das Teleskop, das du selbst betreibst. Die Sicherheit der Montierung (Parken, Abbruch, Meridian-Flip) bleibt in N.I.N.A., die App greift darin nicht ein.
+
+Noch nicht dabei: die einzelne Steuerung von Montierung, Kamera, Fokus und Filterrad sowie Push-Benachrichtigungen. Beides folgt.
+
+Keine Tracker, keine Werbung. Bortle ist Open Source: github.com/benhartwich/bortle-app

@@ -1,10 +1,14 @@
 // Store screenshots, rendered from the real app against a scripted cockpit with real fonts.
 // Skipped unless asked for:
 //
-//   SCREENSHOT_IMAGES=<dir with images.json + jpgs> SCREENSHOT_OUT=store/screenshots \
+//   SCREENSHOT_IMAGES=<dir with images.json + jpgs> SCREENSHOT_OUT=store \
 //     flutter test test/screenshots_test.dart
 //
-// images.json lists the finished pictures the gallery shows ([{title, recipe, file, hours}]).
+// They land where the store listings read them: store/play/<language>/screenshots for Google
+// Play (at most eight) and store/appstore/screenshots/<language> for the App Store.
+//
+// images.json lists the finished pictures the gallery shows
+// ([{title, title_en, recipe, file, hours}]).
 // They are the maintainer's own images and stay out of the repository; the screenshots made
 // from them are what goes in.
 
@@ -28,6 +32,13 @@ final _out = Platform.environment['SCREENSHOT_OUT'];
 
 /// Store sizes: Play phone 1080×2400, App Store 6.9" 1320×2868.
 const _devices = {'android': Size(360, 800), 'ios': Size(440, 956)};
+const _languages = {'de-DE': false, 'en-US': true}; // the store's language → appEnglish
+
+String _folder(String platform, String language) =>
+    platform == 'android' ? 'play/$language/screenshots' : 'appstore/screenshots/$language';
+
+String _title(Map<String, dynamic> picture) =>
+    (appEnglish ? picture['title_en'] as String? : null) ?? picture['title'] as String;
 
 Future<void> _loadFonts() async {
   final root = Platform.environment['FLUTTER_ROOT'] ?? '/sdks/flutter';
@@ -54,6 +65,7 @@ Future<void> _loadFonts() async {
 
 /// A cockpit in the middle of a good night.
 MockClient _showcase(List<Map<String, dynamic>> pictures, String dir) {
+  final m101 = tr('M101 · Feuerradgalaxie', 'M101 · Pinwheel Galaxy');
   // Tonight at 23:40: a store picture of a night should not read 09:00.
   final today = DateTime.now();
   final now = DateTime(today.year, today.month, today.day, 23, 40).toUtc();
@@ -72,9 +84,24 @@ MockClient _showcase(List<Map<String, dynamic>> pictures, String dir) {
       'timestamp': ago(27),
       'message': 'QC borderline: NGC7000_Ha_0036.fits — star count −38 % (thin cloud)',
     },
-    {'type': 'autofocus', 'severity': 'info', 'timestamp': ago(41), 'message': 'Fokus 11 820 · Kurve gültig'},
-    {'type': 'plate_solved', 'severity': 'info', 'timestamp': ago(44), 'message': 'NGC 7000 · 0,4′ neben der Mitte'},
-    {'type': 'meridian_flip', 'severity': 'info', 'timestamp': ago(46), 'message': 'NINA: Flip auf West'},
+    {
+      'type': 'autofocus',
+      'severity': 'info',
+      'timestamp': ago(41),
+      'message': tr('Fokus 11 820 · Kurve gültig', 'Focus 11,820 · curve valid'),
+    },
+    {
+      'type': 'plate_solved',
+      'severity': 'info',
+      'timestamp': ago(44),
+      'message': tr('NGC 7000 · 0,4′ neben der Mitte', 'NGC 7000 · 0.4′ off centre'),
+    },
+    {
+      'type': 'meridian_flip',
+      'severity': 'info',
+      'timestamp': ago(46),
+      'message': tr('NINA: Flip auf West', 'NINA: flipped to west'),
+    },
   ].reversed.toList();
   final pipeline = {
     'id': 'p1',
@@ -85,11 +112,14 @@ MockClient _showcase(List<Map<String, dynamic>> pictures, String dir) {
     'state': 'waiting',
     'hold': {
       'point': 'stacking',
-      'reason': 'Eine der drei Nächte weicht ab: Bortle fragt, bevor es kombiniert.',
+      'reason': tr(
+        'Eine der drei Nächte weicht ab: Bortle fragt, bevor es kombiniert.',
+        'One of the three nights stands out: Bortle asks before combining them.',
+      ),
       'findings': [
-        'Nacht 2: Gradient 4,1 % (die anderen 1,2 %)',
-        '43 von 455 Frames verworfen (Wolken)',
-        'FWHM gleichmäßig 2,9″',
+        tr('Nacht 2: Gradient 4,1 % (die anderen 1,2 %)', 'Night 2: gradient 4.1 % (the others 1.2 %)'),
+        tr('43 von 455 Frames verworfen (Wolken)', '43 of 455 frames rejected (clouds)'),
+        tr('FWHM gleichmäßig 2,9″', 'FWHM even at 2.9″'),
       ],
       'details': {},
       'since': ago(12),
@@ -169,7 +199,7 @@ MockClient _showcase(List<Map<String, dynamic>> pictures, String dir) {
         ],
       }),
       '/api/bortle/plan/suggest' => json([
-        {'name': 'NGC7000', 'type': 'NGC', 'common': 'Nordamerikanebel'},
+        {'name': 'NGC7000', 'type': 'NGC', 'common': tr('Nordamerikanebel', 'North America Nebula')},
       ]),
       '/api/bortle/plan' => json(plan),
       '/api/bortle/develop/level' => json({'level': 'guarded'}),
@@ -181,7 +211,7 @@ MockClient _showcase(List<Map<String, dynamic>> pictures, String dir) {
       '/api/bortle/develop/pipelines/p1' => json(pipeline),
       '/api/bortle/develop/runs' => json([
         {
-          'name': 'M101 · Feuerradgalaxie',
+          'name': m101,
           'recipe': 'galaxy',
           'status': 'running',
           'steps_done': 6,
@@ -190,11 +220,11 @@ MockClient _showcase(List<Map<String, dynamic>> pictures, String dir) {
           'eta_s': 840,
           'worker': 'GPU (A100)',
         },
-        for (final p in pictures) {'name': p['title'], 'recipe': p['recipe'], 'status': 'done'},
+        for (final p in pictures) {'name': _title(p), 'recipe': p['recipe'], 'status': 'done'},
       ]),
       _ when path.startsWith('/api/bortle/develop/runs/') => json({
-        'name': 'M101 · Feuerradgalaxie',
-        'title': 'M101 · Feuerradgalaxie',
+        'name': m101,
+        'title': m101,
         'recipe': 'galaxy',
         'status': 'running',
         'total_steps': 10,
@@ -221,9 +251,9 @@ MockClient _showcase(List<Map<String, dynamic>> pictures, String dir) {
         for (final (i, p) in pictures.indexed)
           {
             'kind': 'developed',
-            'name': p['title'],
-            'title': p['title'],
-            'session': p['title'],
+            'name': _title(p),
+            'title': _title(p),
+            'session': _title(p),
             'recipe': p['recipe'],
             'modified': now.millisecondsSinceEpoch / 1000 - i * 86400,
             'previews': {'full': p['file']},
@@ -239,101 +269,97 @@ void main() {
   final skip = _images == null || _out == null ? 'set SCREENSHOT_IMAGES and SCREENSHOT_OUT' : null;
 
   for (final MapEntry(key: platform, value: size) in _devices.entries) {
-    testWidgets('store screenshots: $platform', (tester) async {
-      appEnglish = false;
-      await _loadFonts();
-      final pictures = (jsonDecode(File('$_images/images.json').readAsStringSync()) as List)
-          .cast<Map<String, dynamic>>();
-      final server = _showcase(pictures, _images!);
-      tester.view.physicalSize = size * 3;
-      tester.view.devicePixelRatio = 3;
-      addTearDown(tester.view.reset);
+    for (final MapEntry(key: language, value: english) in _languages.entries) {
+      testWidgets('store screenshots: $platform $language', (tester) async {
+        appEnglish = english;
+        addTearDown(() => appEnglish = false);
+        await _loadFonts();
+        final pictures = (jsonDecode(File('$_images/images.json').readAsStringSync()) as List)
+            .cast<Map<String, dynamic>>();
+        final server = _showcase(pictures, _images!);
+        tester.view.physicalSize = size * 3;
+        tester.view.devicePixelRatio = 3;
+        addTearDown(tester.view.reset);
 
-      final boundary = GlobalKey();
-      var n = 0;
-      Future<void> shot(String name) async {
-        for (var i = 0; i < 4; i++) {
-          await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 150)));
-          await tester.pump(const Duration(milliseconds: 300));
+        final folder = Directory('$_out/${_folder(platform, language)}');
+        if (folder.existsSync()) folder.deleteSync(recursive: true);
+        folder.createSync(recursive: true);
+        final boundary = GlobalKey();
+        var n = 0;
+        Future<void> shot(String name) async {
+          for (var i = 0; i < 4; i++) {
+            await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 150)));
+            await tester.pump(const Duration(milliseconds: 300));
+          }
+          final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+          final bytes = await tester.runAsync(() async {
+            final image = await render.toImage(pixelRatio: 3);
+            return (await image.toByteData(format: ui.ImageByteFormat.png))!;
+          });
+          n++;
+          File(
+            '${folder.path}/${n.toString().padLeft(2, '0')}-$name.png',
+          ).writeAsBytesSync(bytes!.buffer.asUint8List());
         }
-        final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-        final bytes = await tester.runAsync(() async {
-          final image = await render.toImage(pixelRatio: 3);
-          return (await image.toByteData(format: ui.ImageByteFormat.png))!;
-        });
-        n++;
-        final file = File('$_out/$platform/${n.toString().padLeft(2, '0')}-$name.png')..createSync(recursive: true);
-        file.writeAsBytesSync(bytes!.buffer.asUint8List());
-      }
 
-      Widget app(MemorySessionStore store) => RepaintBoundary(
-        key: boundary,
-        child: BortleApp(
-          store: store,
-          clientFor: (url, token) => BortleClient(baseUrl: url, token: token, http_: server),
-        ),
-      );
+        Future<void> tab(String de, String en) async {
+          await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text(tr(de, en))));
+          await tester.pumpAndSettle();
+        }
 
-      // 1 the login, against bortle.eu
-      await tester.pumpWidget(app(MemorySessionStore()));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('login')), 'ben@sternwarte-nord.de');
-      await tester.enterText(find.byKey(const Key('password')), 'geheim-genug');
-      FocusManager.instance.primaryFocus?.unfocus();
-      await shot('anmelden');
+        // Signed in at bortle.eu; Play takes at most eight, so the sign-in and "More" stay out.
+        final store = MemorySessionStore()..session = const StoredSession('https://bortle.eu', 'bat_x');
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundary,
+            child: BortleApp(
+              store: store,
+              clientFor: (url, token) => BortleClient(baseUrl: url, token: token, http_: server),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await shot('tonight');
 
-      // signed in from here on
-      final store = MemorySessionStore()..session = const StoredSession('https://bortle.eu', 'bat_x');
-      await tester.pumpWidget(const SizedBox());
-      await tester.pumpWidget(app(store));
-      await tester.pumpAndSettle();
-      await shot('heute');
+        await tab('Planen', 'Plan');
+        await tester.enterText(find.byKey(const Key('object')), 'NGC 70');
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('NGC7000 · ${tr('Nordamerikanebel', 'North America Nebula')}').last);
+        await tester.pumpAndSettle();
+        await shot('plan');
 
-      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Planen')));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('object')), 'NGC 70');
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('NGC7000 · Nordamerikanebel').last);
-      await tester.pumpAndSettle();
-      await shot('planen');
+        await tab('Teleskop', 'Telescope');
+        await shot('telescope');
+        await tester.tap(find.text(tr('Verlauf', 'History')));
+        await tester.pumpAndSettle();
+        await shot('history');
+        await tester.tap(find.text(tr('Übersicht', 'Overview')));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Teleskop')));
-      await tester.pumpAndSettle();
-      await shot('teleskop');
-      await tester.tap(find.text('Verlauf'));
-      await tester.pumpAndSettle();
-      await shot('verlauf');
-      await tester.tap(find.text('Übersicht'));
-      await tester.pumpAndSettle();
+        await tab('Heute', 'Tonight');
+        await tester.tap(find.textContaining(tr('Wartet auf dich', 'Waiting for you')));
+        await tester.pumpAndSettle();
+        await shot('approval');
+        Navigator.of(tester.element(find.text(tr('Freigabe', 'Approval')))).pop();
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Heute')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Wartet auf dich'));
-      await tester.pumpAndSettle();
-      await shot('freigabe');
-      Navigator.of(tester.element(find.text('Freigabe'))).pop();
-      await tester.pumpAndSettle();
+        await tab('Galerie', 'Gallery');
+        await shot('gallery');
 
-      await tester.tap(find.text('Galerie').last);
-      await tester.pumpAndSettle();
-      await shot('galerie');
+        await tester.tap(find.text(tr('Läufe', 'Runs')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(tr('M101 · Feuerradgalaxie', 'M101 · Pinwheel Galaxy')).first);
+        await tester.pumpAndSettle();
+        await shot('run');
+        Navigator.of(tester.element(find.text(tr('Lauf', 'Run')))).pop();
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Läufe'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('M101 · Feuerradgalaxie').first);
-      await tester.pumpAndSettle();
-      await shot('entwicklung');
-      Navigator.of(tester.element(find.text('Lauf'))).pop();
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Mehr').last);
-      await tester.pumpAndSettle();
-      await shot('mehr');
-      await tester.tap(find.byKey(const Key('red-light')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Heute').last);
-      await tester.pumpAndSettle();
-      await shot('rotlicht');
-    }, skip: skip != null);
+        await tab('Mehr', 'More');
+        await tester.tap(find.byKey(const Key('red-light')));
+        await tester.pumpAndSettle();
+        await tab('Heute', 'Tonight');
+        await shot('red-light');
+      }, skip: skip != null);
+    }
   }
 }
