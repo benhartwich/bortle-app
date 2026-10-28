@@ -124,7 +124,8 @@ allskyhub will adopt it, so it is built as a self-contained theme.
 
 ## Push
 
-The app uses Firebase Cloud Messaging, as allskyhub does. Bortle sends a
+The app uses Firebase Cloud Messaging, in the project it shares with allskyhub
+(see "Build and release"). Bortle sends a
 notification when:
 - a hold waits for an answer,
 - a development has finished or failed,
@@ -210,7 +211,14 @@ Still open:
 - TestFlight groups,
 - Android builds.
 
-**Firebase:** one project per app.
+**Firebase:** one project shared with allskyhub. The maintainer decided this
+on 2026-10-28 and sets it up himself.
+- The project holds two Firebase apps: `eu.bortle.app` and `org.allskyhub.app`.
+  Each has its own `google-services.json` and `GoogleService-Info.plist`; the
+  FCM sender is shared.
+- Bortle's server sends with a service account that has FCM send rights.
+- The maintainer uploads that key in Bortle's admin. It never goes through a
+  chat and never into a repository, the same rule as for the store keys.
 
 ### Keys and a public repository
 
