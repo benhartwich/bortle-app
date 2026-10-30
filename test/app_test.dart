@@ -30,8 +30,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Bortle 2026.10 gefunden'), findsOneWidget);
 
+    // a wrong password says so, and empties the field for the next try
     await tester.enterText(find.byKey(const Key('login')), 'ben@example.org');
+    await tester.enterText(find.byKey(const Key('password')), 'wrong');
+    await tester.tap(find.byKey(const Key('sign-in')));
+    await tester.pumpAndSettle();
+    expect(find.text('Name/E-Mail oder Passwort falsch.'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byKey(const Key('password'))).controller!.text, isEmpty);
+
     await tester.enterText(find.byKey(const Key('password')), 'right');
+    await tester.scrollUntilVisible(find.byKey(const Key('sign-in')), 200, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.byKey(const Key('sign-in')));
     await tester.pumpAndSettle();
 

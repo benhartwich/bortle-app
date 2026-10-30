@@ -90,7 +90,15 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await widget.clientFor(url, null).login(_login.text.trim(), _password.text, _deviceLabel);
       widget.onSignedIn(widget.clientFor(url, result.token), result.user);
     } on BortleError catch (e) {
-      setState(() => _error = e.status == 0 ? tr('Server nicht erreichbar.', 'Server not reachable.') : e.message);
+      setState(
+        () => _error = switch (e.status) {
+          0 => tr('Server nicht erreichbar.', 'Server not reachable.'),
+          401 => tr('Name/E-Mail oder Passwort falsch.', 'Name/email or password is wrong.'),
+          429 => tr('Zu viele Fehlversuche – bitte kurz warten.', 'Too many failed attempts – please wait a moment.'),
+          _ => e.message,
+        },
+      );
+      if (e.status == 401) _password.clear();
     } finally {
       if (mounted) setState(() => _busy = false);
     }
