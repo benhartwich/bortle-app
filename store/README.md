@@ -52,6 +52,14 @@ The API cannot fill these; they are answered once by hand.
   - deletion: the user revokes a device under Profile; the account is deleted on request
     to info@bortle.eu.
   - the FCM device token, for app functionality (push).
+  - **approximate location** (since the tools without an account, 0.4.0): used on the
+    phone for twilight, the moon and altitudes. Only when the weather tab is opened is
+    it sent, rounded to 0.1° (about 10 km), to bortle.eu, which asks Open-Meteo and
+    7Timer! as service providers and keeps nothing. Play: "Approximate location –
+    collected, processed ephemerally, not shared, optional, app functionality". App
+    Store privacy: "Coarse Location – App Functionality, not linked to the user, no
+    tracking". The permission text is in ios/Runner/Info.plist
+    (NSLocationWhenInUseUsageDescription); Android asks for ACCESS_COARSE_LOCATION only.
 - **Account deletion URL:** not required (the app does not create accounts), but
   https://bortle.eu/privacy names how.
 - **Category:** Photography (Play); Photo & Video, second Utilities (App Store). Contact
