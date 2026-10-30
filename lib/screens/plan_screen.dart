@@ -28,6 +28,10 @@ class _PlanScreenState extends State<PlanScreen> {
   final _exposure = TextEditingController(text: '180');
   final _count = TextEditingController(text: '60');
   String _level = 'auto';
+  String? _filter;
+  late final Future<List<Recommendation>> _recommended = widget.client.recommend().catchError(
+    (Object _) => const <Recommendation>[],
+  );
   bool _start = false;
   bool _busy = false;
 
@@ -41,11 +45,14 @@ class _PlanScreenState extends State<PlanScreen> {
     }, onError: (_) {});
   }
 
-  void _pick(String object) {
+  void _pick(String object, {Recommendation? from}) {
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _object = object;
       _plan = widget.client.plan(object);
+      // what the recommendation measured for this rig; a searched object keeps the defaults
+      _filter = from?.filter;
+      if (from?.exposureS != null) _exposure.text = from!.exposureS!.round().toString();
     });
   }
 
@@ -77,6 +84,7 @@ class _PlanScreenState extends State<PlanScreen> {
         count: count,
         developLevel: _level,
         start: _start,
+        filter: _filter,
       );
       messenger.showSnackBar(
         SnackBar(
@@ -122,9 +130,9 @@ class _PlanScreenState extends State<PlanScreen> {
             },
           ),
         ),
-        if (_plan == null)
+        if (_plan == null) ...[
           Padding(
-            padding: const EdgeInsets.only(top: 24),
+            padding: const EdgeInsets.only(top: 16),
             child: Text(
               tr(
                 'Sichtbarkeit, Mond und Wolken rechnet Bortle für den Standort und Horizont aus deinem Profil.',
@@ -133,6 +141,57 @@ class _PlanScreenState extends State<PlanScreen> {
               style: TextStyle(color: context.tones.muted),
             ),
           ),
+          SectionTitle(tr('Empfehlungen für heute Nacht', 'Recommended for tonight')),
+          FutureBuilder<List<Recommendation>>(
+            future: _recommended,
+            builder: (context, snap) {
+              if (snap.connectionState != ConnectionState.done) return const LinearProgressIndicator();
+              final list = snap.data ?? const <Recommendation>[];
+              if (list.isEmpty) {
+                return Text(
+                  tr(
+                    'Keine Empfehlungen – ist im Profil ein Standort eingetragen?',
+                    'No recommendations – is a site set in your profile?',
+                  ),
+                  style: TextStyle(color: context.tones.muted),
+                );
+              }
+              return Column(
+                children: [
+                  for (final r in list)
+                    Card(
+                      child: ListTile(
+                        key: Key('rec-${r.name}'),
+                        leading: Icon(r.favorite ? Icons.star : Icons.auto_awesome_outlined),
+                        title: Text(r.name),
+                        subtitle: Text(
+                          [
+                            if (r.visibleHours > 0)
+                              tr(
+                                '${decimal(r.visibleHours, 1)} h dunkel und hoch genug',
+                                '${decimal(r.visibleHours, 1)} h dark and high enough',
+                              )
+                            else
+                              tr('heute kein dunkles Fenster', 'no dark window tonight'),
+                            if (r.filter != null)
+                              '${r.filter}${r.exposureS != null ? ' · ${r.exposureS!.round()} s' : ''}',
+                            if (r.alreadyHours > 0)
+                              tr(
+                                'schon ${decimal(r.alreadyHours, 1)} h im Kasten',
+                                '${decimal(r.alreadyHours, 1)} h already',
+                              ),
+                          ].join('\n'),
+                        ),
+                        isThreeLine: true,
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _pick(r.name, from: r),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
         if (_plan != null)
           FutureBuilder<NightPlan>(
             future: _plan,
@@ -258,6 +317,17 @@ class _PlanScreenState extends State<PlanScreen> {
             ),
           ),
         SectionTitle(tr('Aufnahme', 'Capture')),
+        if (_filter != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: InputChip(
+              key: const Key('filter'),
+              avatar: const Icon(Icons.filter_alt_outlined, size: 18),
+              label: Text(tr('Filter: $_filter (empfohlen)', 'Filter: $_filter (recommended)')),
+              onDeleted: () => setState(() => _filter = null),
+              deleteButtonTooltipMessage: tr('Filter nicht setzen', "Don't set a filter"),
+            ),
+          ),
         Row(
           children: [
             Expanded(

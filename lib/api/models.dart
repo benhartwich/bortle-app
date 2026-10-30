@@ -544,3 +544,45 @@ class NextcloudFolder {
   final String? parent;
   final List<({String name, bool project})> dirs;
 }
+
+/// One of tonight's best targets for the account's site, horizon and rig
+/// (GET /plan/recommend).
+class Recommendation {
+  const Recommendation({
+    required this.name,
+    required this.score,
+    required this.visibleHours,
+    required this.reasons,
+    this.type,
+    this.filter,
+    this.exposureS,
+    this.favorite = false,
+    this.alreadyHours = 0,
+  });
+
+  factory Recommendation.fromJson(Map j) => Recommendation(
+    name: '${j['name']}',
+    score: (j['score'] as num?)?.toDouble() ?? 0,
+    visibleHours: (j['visible_hours'] as num?)?.toDouble() ?? 0,
+    reasons: [for (final r in (j['reasons'] as List? ?? const [])) '$r'],
+    type: _str(j['type']),
+    filter: _str(j['recommended_filter']),
+    exposureS: (j['recommended_exposure_s'] as num?)?.toDouble(),
+    favorite: j['favorite'] == true,
+    alreadyHours: (j['already_hours'] as num?)?.toDouble() ?? 0,
+  );
+
+  final String name;
+  final double score;
+
+  /// Hours in tonight's dark window above the horizon.
+  final double visibleHours;
+  final List<String> reasons;
+  final String? type;
+  final String? filter;
+  final double? exposureS;
+  final bool favorite;
+
+  /// What is already integrated on it.
+  final double alreadyHours;
+}

@@ -61,6 +61,28 @@ void main() {
     expect(sent.containsKey('user'), isFalse); // the proxy names the account
   });
 
+  testWidgets('a recommendation for tonight brings its filter and exposure along', (tester) async {
+    phone(tester);
+    final server = FakeServer();
+    await tester.pumpWidget(app(server));
+    await tester.pumpAndSettle();
+    await openTab(tester, 'Planen');
+
+    expect(find.text('Empfehlungen für heute Nacht'), findsOneWidget);
+    expect(find.textContaining('5,2 h dunkel und hoch genug'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('rec-North America Nebula')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Filter: L-eXtreme (empfohlen)'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byKey(const Key('exposure'))).controller!.text, '300');
+    await tester.ensureVisible(find.byKey(const Key('send')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('send')));
+    await tester.pumpAndSettle();
+    expect(server.sentPlan!['filter_name'], 'L-eXtreme');
+    expect(server.sentPlan!['exposure_s'], 300);
+  });
+
   testWidgets('the night at the telescope, and ending it through NINA', (tester) async {
     phone(tester);
     final server = FakeServer();

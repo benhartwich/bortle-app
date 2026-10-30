@@ -208,6 +208,21 @@ class FakeServer {
         return http.Response(fixture('suggest_ngc7.json'), 200, headers: {'content-type': 'application/json'});
       case ('GET', '/api/bortle/plan'):
         return http.Response(fixture('plan_ngc7000.json'), 200, headers: {'content-type': 'application/json'});
+      case ('GET', '/api/bortle/plan/recommend'):
+        return json({
+          'recommendations': [
+            {
+              'name': 'North America Nebula',
+              'score': 8.1,
+              'visible_hours': 5.2,
+              'recommended_filter': 'L-eXtreme',
+              'recommended_exposure_s': 300,
+              'favorite': true,
+              'already_hours': 2.5,
+              'reasons': ['culminates at 82°'],
+            },
+          ],
+        });
       case ('GET', '/api/bortle/develop/level'):
         return json({'level': 'guarded', 'step_holds': false, 'stored': true});
       case ('POST', '/api/bortle/plan/nina'):

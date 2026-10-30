@@ -277,6 +277,12 @@ class BortleClient {
   Future<NightPlan> plan(String object) async =>
       NightPlan.fromJson(await _send('GET', '/api/bortle/plan', query: {'object': object}) as Map);
 
+  /// Tonight's best targets for the account's site, horizon and rig.
+  Future<List<Recommendation>> recommend({int top = 10}) async {
+    final j = await _send('GET', '/api/bortle/plan/recommend', query: {'top_n': '$top'}) as Map;
+    return [for (final r in (j['recommendations'] as List? ?? const [])) Recommendation.fromJson(r as Map)];
+  }
+
   /// The account's default develop level: stepwise | guarded | auto.
   Future<String> developLevel() async =>
       '${((await _send('GET', '/api/bortle/develop/level')) as Map)['level'] ?? 'auto'}';
@@ -289,6 +295,7 @@ class BortleClient {
     required int count,
     required String developLevel,
     bool start = false,
+    String? filter,
   }) async =>
       await _send(
             'POST',
@@ -302,6 +309,7 @@ class BortleClient {
               'window_end': plan.windowEnd?.toIso8601String(),
               'develop_level': developLevel,
               'start': start,
+              'filter_name': ?filter,
             },
           )
           as Map;
