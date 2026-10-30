@@ -52,7 +52,7 @@ The API cannot fill these; they are answered once by hand.
   - deletion: the user revokes a device under Profile; the account is deleted on request
     to info@bortle.eu.
   - the FCM device token, for app functionality (push).
-  - **approximate location** (since the tools without an account, 0.4.0): used on the
+  - **approximate location** (since the tools without an account): used on the
     phone for twilight, the moon and altitudes. Only when the weather tab is opened is
     it sent, rounded to 0.1° (about 10 km), to bortle.eu, which asks Open-Meteo and
     7Timer! as service providers and keeps nothing. Play: "Approximate location –
