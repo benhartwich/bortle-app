@@ -8,6 +8,7 @@ import '../api/bortle_client.dart';
 import '../api/models.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../tools/tools_screen.dart';
 
 typedef ClientFactory = BortleClient Function(String baseUrl, String? token);
 
@@ -230,6 +231,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: _busy
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : Text(info != null && !info.needsLogin ? tr('Verbinden', 'Connect') : tr('Anmelden', 'Sign in')),
+              ),
+              const SizedBox(height: 28),
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                tr(
+                  'Ohne Konto: Dämmerung und Mond, wie hoch ein Objekt heute steigt, der Optik-Rechner und das Wetter für die Nacht.',
+                  'Without an account: twilight and the moon, how high an object climbs tonight, the optics calculator and the night’s weather.',
+                ),
+                style: TextStyle(color: tones.muted, fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                key: const Key('tools'),
+                icon: const Icon(Icons.nights_stay_outlined),
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ToolsScreen())),
+                label: Text(tr('Werkzeuge für die Nacht', 'Tools for the night')),
               ),
             ],
           ),

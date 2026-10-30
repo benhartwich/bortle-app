@@ -20,6 +20,9 @@ dependencies:
   # (docs/CONCEPT.md, "Push"); the identifiers come in as --dart-defines at build time.
   firebase_core: ^5.1.0
   firebase_messaging: ^17.0.1
+  # The site for the tools without an account (lib/tools): where the phone is, coarse,
+  # used on the phone only; the weather asks with the place rounded to 0.1°.
+  geolocator: ^14.1.2
 
 dev_dependencies:
   flutter_test:
@@ -43,6 +46,11 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+
+  # The objects for the tools without an account: Bortle's curated targets and the
+  # Messier and bright NGC/IC objects from OpenNGC (CC BY-SA 4.0, assets/CATALOG.md).
+  assets:
+    - assets/catalog.json
 
   # Display font, the same as allskyhub's (OFL-1.1, LICENSES/OFL-1.1.txt).
   fonts:

@@ -170,6 +170,30 @@ allskyhub, 2026-10-28):
 Until push exists, the app refreshes when it is opened and polls the Telescope
 tab while it is visible.
 
+## Tools without an account
+
+From the login screen (and under More once signed in): twilight and the moon,
+how high an object climbs tonight, the optics' arithmetic and the night's
+weather – what a hobby astronomer reaches for without a Bortle of their own.
+
+- **Computed on the phone** (`lib/astro.dart`): sun and moon after Meeus'
+  low-precision series, checked against Skyfield/DE421 in `test/astro_test.dart`
+  (twilight within two minutes, moonrise within four, altitudes to 0.1°). For
+  deciding whether a night is worth it, never for pointing.
+- **Objects** (`assets/catalog.json`, `lib/catalog.dart`): Bortle's curated
+  targets plus every Messier object and bright NGC/IC objects from OpenNGC
+  (CC BY-SA 4.0, `assets/CATALOG.md`), ranked by tonight's moonless hours
+  above 30°.
+- **Optics** (`lib/optics.dart`): f-ratio, image scale, field, Dawes, and
+  whether the pixels sample the seeing (1.5–3.5 px per FWHM as the rule of
+  thumb); with optics saved, each object says how much of the field it fills.
+- **Weather**: the only part that leaves the phone. bortle.eu's public
+  `/api/public/weather` gets the place rounded to 0.1°, asks Open-Meteo and
+  7Timer!, caches per rounded place and keeps nothing – and only when the tab
+  is opened.
+- **The site** comes from the phone's coarse location or is typed; it is kept
+  on the phone (`lib/tools/tools_store.dart`).
+
 ## allskyhub
 
 The two apps share a design language:

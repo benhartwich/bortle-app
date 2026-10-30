@@ -3,6 +3,9 @@
          because an own install on the home network is often plain http; the app
          warns when such an address is not a private one. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- The tools without an account work out twilight, the moon and altitudes for where
+         the phone is; a town's precision is plenty, so only the coarse location. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="Bortle"
         android:usesCleartextTraffic="true"

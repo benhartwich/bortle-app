@@ -70,6 +70,8 @@ void main() {
     final theme = Theme.of(tester.element(find.text('Mehr').last));
     expect(theme.extension<Tones>()!.red, isTrue);
 
+    await tester.ensureVisible(find.byKey(const Key('sign-out')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('sign-out')));
     await tester.pumpAndSettle();
     expect(server.signedOut, isTrue);

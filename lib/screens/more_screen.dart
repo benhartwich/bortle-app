@@ -7,6 +7,7 @@ import '../api/bortle_client.dart';
 import '../api/models.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../tools/tools_screen.dart';
 import '../widgets.dart';
 
 class MoreScreen extends StatefulWidget {
@@ -126,6 +127,17 @@ class _MoreScreenState extends State<MoreScreen> {
               },
             ),
           ],
+          ListTile(
+            key: const Key('tools'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.nights_stay_outlined),
+            title: Text(tr('Werkzeuge für die Nacht', 'Tools for the night')),
+            subtitle: Text(
+              tr('Dämmerung, Mond, Objekthöhen, Optik, Wetter', 'Twilight, moon, altitudes, optics, weather'),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ToolsScreen())),
+          ),
           const SizedBox(height: 24),
           OutlinedButton.icon(
             key: const Key('sign-out'),
