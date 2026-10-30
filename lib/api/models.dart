@@ -170,6 +170,7 @@ class RunStep {
   const RunStep({
     required this.op,
     required this.status,
+    this.key,
     this.previews = const [],
     this.params = const {},
     this.metrics = const {},
@@ -182,6 +183,7 @@ class RunStep {
     final last = iterations.isEmpty ? const {} : iterations.last as Map;
     return RunStep(
       op: '${j['op']}',
+      key: j['key'] is String ? j['key'] as String : null,
       status: '${j['status'] ?? ''}',
       previews: [for (final p in (j['previews'] as List? ?? const [])) '$p'],
       params: {
@@ -198,6 +200,9 @@ class RunStep {
   }
 
   final String op;
+
+  /// `op#n` for an op the recipe runs more than once (null in protocols from before).
+  final String? key;
   final String status;
   final List<String> previews;
 

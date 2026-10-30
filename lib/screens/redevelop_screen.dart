@@ -35,7 +35,12 @@ class _RedevelopScreenState extends State<RedevelopScreen> {
   }
 
   /// What the run used, per op (the last step of that name wins, as on the cockpit).
-  late final Map<String, Map<String, Object?>> _used = {for (final s in widget.run.steps) s.op: s.params};
+  /// What the run used, per step key (a protocol from before step keys gets them from
+  /// its op sequence).
+  late final Map<String, Map<String, Object?>> _used = () {
+    final keys = stepKeys([for (final s in widget.run.steps) s.op]);
+    return {for (final (i, s) in widget.run.steps.indexed) s.key ?? keys[i]: s.params};
+  }();
 
   Object? _original(String op, String param, Corridor c) => _used[op]?[param] ?? c.defaultValue;
 
@@ -45,7 +50,8 @@ class _RedevelopScreenState extends State<RedevelopScreen> {
   /// The steps whose values differ from the run, in recipe order.
   List<String> _changed(RecipeSpec spec) => [
     for (final s in spec.changeable)
-      if (s.params.entries.any((e) => '${_value(s.op, e.key, e.value)}' != '${_original(s.op, e.key, e.value)}')) s.op,
+      if (s.params.entries.any((e) => '${_value(s.key, e.key, e.value)}' != '${_original(s.key, e.key, e.value)}'))
+        s.key,
   ];
 
   /// Values away from the recipe default – what makes the new run this run, plus the
@@ -54,8 +60,8 @@ class _RedevelopScreenState extends State<RedevelopScreen> {
     final out = <String, Map<String, Object?>>{};
     for (final s in spec.changeable) {
       for (final e in s.params.entries) {
-        final v = _value(s.op, e.key, e.value);
-        if ('$v' != '${e.value.defaultValue}') (out[s.op] ??= {})[e.key] = v;
+        final v = _value(s.key, e.key, e.value);
+        if ('$v' != '${e.value.defaultValue}') (out[s.key] ??= {})[e.key] = v;
       }
     }
     return out;
@@ -63,8 +69,8 @@ class _RedevelopScreenState extends State<RedevelopScreen> {
 
   String? _badge(ChangeableStep s, List<String> changed) {
     final parts = [
-      if (s.twice) tr('kommt zweimal vor – gilt für beide', 'runs twice – applies to both'),
-      if (changed.isNotEmpty && changed.first == s.op) tr('← startet hier neu', '← starts again here'),
+      if (s.pass != null) tr('${s.pass}. Durchgang', 'pass ${s.pass}'),
+      if (changed.isNotEmpty && changed.first == s.key) tr('← startet hier neu', '← starts again here'),
     ];
     return parts.isEmpty ? null : parts.join(' · ');
   }
@@ -154,9 +160,9 @@ class _RedevelopScreenState extends State<RedevelopScreen> {
                             op: s.op,
                             params: s.params,
                             docs: docs,
-                            valueOf: (p, c) => _value(s.op, p, c),
-                            originalOf: (p, c) => _original(s.op, p, c),
-                            onChanged: (p, v) => setState(() => (_values[s.op] ??= {})[p] = v),
+                            valueOf: (p, c) => _value(s.key, p, c),
+                            originalOf: (p, c) => _original(s.key, p, c),
+                            onChanged: (p, v) => setState(() => (_values[s.key] ??= {})[p] = v),
                             badge: _badge(s, changed),
                           ),
                         ),

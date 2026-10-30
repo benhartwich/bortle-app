@@ -53,37 +53,37 @@ class RecipeSpec {
   Map<String, Corridor> paramsOf(String op) =>
       steps.firstWhere((s) => s.op == op, orElse: () => RecipeStepSpec(op, const {})).params;
 
-  /// The steps as they can be changed. Values are keyed by the op's name, so a recipe
-  /// that runs an op twice (emission-nebula sharpens the object, then the stars) cannot
-  /// set the two apart: a value reaches both. Such an op appears once, [ChangeableStep.twice],
-  /// without the parameters whose defaults differ between the two (the sharpen target) –
-  /// changing one would make both steps the same.
+  /// The steps with their keys, as the engine names them (Recipe.step_keys on the
+  /// server): the op, or `op#n` for an op the recipe runs more than once – emission-nebula
+  /// sharpens the object (`deconvolve_or_sharpen#1`), then the stars (`#2`), each with its
+  /// own values.
   List<ChangeableStep> get changeable {
-    final out = <ChangeableStep>[];
-    for (final step in steps) {
-      if (out.any((s) => s.op == step.op)) continue;
-      final all = steps.where((s) => s.op == step.op).toList();
-      if (all.length == 1) {
-        out.add(ChangeableStep(step.op, step.params, twice: false));
-        continue;
-      }
-      out.add(
-        ChangeableStep(step.op, {
-          for (final e in step.params.entries)
-            if (all.every((s) => '${s.params[e.key]?.defaultValue}' == '${e.value.defaultValue}')) e.key: e.value,
-        }, twice: true),
-      );
-    }
-    return out;
+    final keys = stepKeys([for (final s in steps) s.op]);
+    return [for (var i = 0; i < steps.length; i++) ChangeableStep(steps[i].op, steps[i].params, key: keys[i])];
   }
 }
 
+/// One key per op in order: `op`, or `op#n` (1-based) for an op that occurs more than once.
+List<String> stepKeys(List<String> ops) {
+  final counts = <String, int>{};
+  for (final op in ops) {
+    counts[op] = (counts[op] ?? 0) + 1;
+  }
+  final seen = <String, int>{};
+  return [for (final op in ops) (counts[op]! > 1) ? '$op#${seen[op] = (seen[op] ?? 0) + 1}' : op];
+}
+
 class ChangeableStep {
-  const ChangeableStep(this.op, this.params, {required this.twice});
+  const ChangeableStep(this.op, this.params, {required this.key});
 
   final String op;
   final Map<String, Corridor> params;
-  final bool twice;
+
+  /// `op`, or `op#n` – what a value, a hold and a resume name this step by.
+  final String key;
+
+  /// Which pass of an op the recipe runs more than once, else null.
+  int? get pass => key.contains('#') ? int.tryParse(key.split('#').last) : null;
 }
 
 /// A text in both languages; [text] is the app's.
@@ -158,8 +158,12 @@ class ParamDocs {
 
   ParamDoc? of(String op, String param) => _docs[op]?[param];
 
-  /// The step's name in words, or the op itself.
-  String stepName(String op) => _docs[op]?['_op']?.label?.text ?? op.replaceAll('_', ' ');
+  /// The step's name in words, or the op itself; a key `op#2` adds its pass.
+  String stepName(String key) {
+    final parts = key.split('#');
+    final name = _docs[parts.first]?['_op']?.label?.text ?? parts.first.replaceAll('_', ' ');
+    return parts.length > 1 ? '$name (${parts.last}. ${tr('Durchgang', 'pass')})' : name;
+  }
 
   String? stepHelp(String op) => _docs[op]?['_op']?.help?.text;
 }

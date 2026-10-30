@@ -74,14 +74,17 @@ void main() {
 
     await tester.tap(find.byKey(const Key('develop-again')));
     await tester.pumpAndSettle();
-    // the sharpen runs twice: shown once, its per-step target not offered
-    expect(find.text('Entfalten / Schärfen'), findsOneWidget);
-    expect(find.text('Ziel'), findsNothing);
-    expect(find.textContaining('kommt zweimal vor'), findsOneWidget);
+    // the sharpen runs twice, once for the object and once for the stars: two cards,
+    // each with its own values
+    expect(find.text('Entfalten / Schärfen'), findsNWidgets(2));
+    expect(find.text('1. Durchgang'), findsOneWidget);
+    expect(find.text('2. Durchgang'), findsOneWidget);
+    expect(find.text('Ziel'), findsNWidgets(2));
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Aus'));
+    // the second pass to the object: only that occurrence changes, from there on
+    await tester.tap(find.widgetWithText(ChoiceChip, 'object').last);
     await tester.pumpAndSettle();
-    expect(find.text('Neu ab „Strecken“'), findsOneWidget);
+    expect(find.text('Neu ab „Entfalten / Schärfen (2. Durchgang)“'), findsOneWidget);
     await tester.tap(find.byKey(const Key('redevelop')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Starten'));
@@ -90,9 +93,9 @@ void main() {
     expect(server.redevelopBody, {
       'recipe': null,
       'overrides': {
-        'stretch': {'linked': false},
+        'deconvolve_or_sharpen#2': {'target': 'object'},
       },
-      'resume_from': 'stretch',
+      'resume_from': 'deconvolve_or_sharpen#2',
     });
   });
 
@@ -108,7 +111,7 @@ void main() {
     await tester.pumpWidget(_screen(RunScreen(client: _client(server), name: 'M33_galaxy')));
     await tester.pumpAndSettle();
     for (final step in ['Strecken', 'Entfalten / Schärfen']) {
-      await tester.tap(find.text(step).first);
+      await tester.tap(find.textContaining(step).first);
       await tester.pumpAndSettle();
     }
     await tester.tap(find.byKey(const Key('develop-again')));

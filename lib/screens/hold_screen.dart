@@ -358,7 +358,10 @@ class _StepHoldState extends State<_StepHold> {
   @override
   Widget build(BuildContext context) {
     final d = widget.details;
-    final op = '${d['step'] ?? ''}';
+    // the step's key (`deconvolve_or_sharpen#2`) and its op; holds from before step keys
+    // carry the op alone
+    final key = '${d['step'] ?? ''}';
+    final op = '${d['op'] ?? key.split('#').first}';
     final next = '${d['next'] ?? ''}';
     final used = d['params'] is Map ? Map<String, Object?>.from(d['params'] as Map) : const <String, Object?>{};
     final previews = [for (final p in (d['previews'] as List? ?? const [])) '$p'];
@@ -368,9 +371,11 @@ class _StepHoldState extends State<_StepHold> {
       builder: (context, snap) {
         final (specs, docs, run) = snap.data ?? (const <RecipeSpec>[], ParamDocs.empty, null);
         final spec = specs.where((s) => s.name == '${d['recipe']}').firstOrNull;
-        final step = spec?.changeable.where((s) => s.op == op).firstOrNull;
+        final step =
+            spec?.changeable.where((s) => s.key == key).firstOrNull ??
+            spec?.changeable.where((s) => s.op == key).firstOrNull;
         final steps = run?.steps ?? const <RunStep>[];
-        final here = steps.lastIndexWhere((s) => s.op == op);
+        final here = stepKeys([for (final s in steps) s.op]).lastIndexOf(step?.key ?? key);
         final before = here > 0 ? stepBefore(steps, here) : null;
         final after = here >= 0 ? steps[here].metrics : const <String, double>{};
         final shown = fullPreview(previews);
@@ -379,7 +384,7 @@ class _StepHoldState extends State<_StepHold> {
           children: [
             const SizedBox(height: 12),
             Text(
-              '${tr('Fertig', 'Done')}: ${docs.stepName(op)}'
+              '${tr('Fertig', 'Done')}: ${docs.stepName(step?.key ?? key)}'
               '${next.isNotEmpty ? ' · ${tr('als Nächstes', 'next')}: ${docs.stepName(next)}' : ''}',
               style: Theme.of(context).textTheme.titleMedium,
             ),
@@ -413,9 +418,6 @@ class _StepHoldState extends State<_StepHold> {
                 valueOf: (p, c) => widget.values.containsKey(p) ? widget.values[p] : (used[p] ?? c.defaultValue),
                 originalOf: (p, c) => used[p] ?? c.defaultValue,
                 onChanged: widget.onChanged,
-                badge: step.twice
-                    ? tr('kommt zweimal vor – ein Wert gilt für beide', 'runs twice – a value applies to both')
-                    : null,
               ),
             ],
             if (snap.connectionState == ConnectionState.waiting)

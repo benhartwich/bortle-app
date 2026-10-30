@@ -184,7 +184,7 @@ class _StepTile extends StatelessWidget {
       if (step.seconds != null)
         step.seconds! >= 90 ? '${(step.seconds! / 60).round()} min' : '${step.seconds!.round()} s',
     ].join(' · ');
-    final title = Text(docs.stepName(step.op));
+    final title = Text(docs.stepName(step.key ?? stepKeys([for (final s in steps) s.op])[index]));
     if (!hasMore) {
       return ListTile(
         dense: true,
