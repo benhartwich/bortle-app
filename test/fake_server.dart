@@ -29,6 +29,7 @@ class FakeServer {
   /// The last answer at the step hold p2, and the last redevelop asked for.
   Map<String, Object?>? stepAnswer;
   Map<String, Object?>? redevelopBody;
+  Map<String, Object?>? nextcloudStart;
   bool pushDropped = false;
 
   static const token = 'bat_test-token';
@@ -106,6 +107,30 @@ class FakeServer {
       case ('POST', '/api/bortle/develop/pipelines/p2/approve'):
         stepAnswer = (jsonDecode(request.body) as Map).cast<String, Object?>();
         return json({'pipeline': 'p2', 'state': 'queued'});
+      case ('GET', '/api/bortle/equipment/nextcloud/browse'):
+        final at = request.url.queryParameters['path'] ?? '';
+        return json(switch (at) {
+          '' => {
+            'ok': true,
+            'path': '',
+            'parent': null,
+            'dirs': [
+              {'name': 'Nebel', 'has_lights': false},
+            ],
+          },
+          _ => {
+            'ok': true,
+            'path': at,
+            'parent': '',
+            'dirs': [
+              {'name': 'NGC 7000', 'has_lights': true},
+              {'name': 'Flats', 'has_lights': false},
+            ],
+          },
+        });
+      case ('POST', '/api/bortle/develop/from-nextcloud'):
+        nextcloudStart = (jsonDecode(request.body) as Map).cast<String, Object?>();
+        return json({'queued': true, 'mode': 'pipeline', 'state': 'running', 'pipeline': 'p3'});
       case ('GET', '/api/bortle/recipes'):
         return json(_recipes);
       case ('GET', '/api/bortle/recipes/docs'):

@@ -4,6 +4,7 @@
 
 import 'package:bortle_app/api/bortle_client.dart';
 import 'package:bortle_app/design.dart';
+import 'package:bortle_app/screens/develop_screen.dart';
 import 'package:bortle_app/screens/hold_screen.dart';
 import 'package:bortle_app/screens/run_screen.dart';
 import 'package:flutter/material.dart';
@@ -115,5 +116,30 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Aus'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a Nextcloud project goes into production at the chosen level', (tester) async {
+    tester.view.physicalSize = const Size(1080, 4000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final server = FakeServer();
+    await tester.pumpWidget(_screen(DevelopScreen(client: _client(server))));
+    await tester.pumpAndSettle();
+
+    // the account's default is preselected; the choice is for this run
+    expect(find.text('Mit Leitplanken'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('level-stepwise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nebel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Projekt'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('start-NGC 7000')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('tier-slow')));
+    await tester.pumpAndSettle();
+
+    // no account named: the cockpit takes it from the signed-in session
+    expect(server.nextcloudStart, {'project': 'Nebel/NGC 7000', 'tier': 'slow', 'level': 'stepwise'});
   });
 }

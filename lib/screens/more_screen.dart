@@ -136,8 +136,8 @@ class _MoreScreenState extends State<MoreScreen> {
           const SizedBox(height: 16),
           Text(
             tr(
-              'Sessions, Upload, die Gerätesteuerung und die Einstellungen kommen in den nächsten Stufen der App; bis dahin sind sie im Browser-Cockpit.',
-              'Sessions, upload, device control and settings come in the app’s next stages; until then they are in the browser cockpit.',
+              'Sessions, der ZIP-Upload, die Gerätesteuerung und die Einstellungen (auch die Nextcloud-Verbindung) sind im Browser-Cockpit; die Gerätesteuerung kommt in die App, sobald sie an echter Hardware erprobt ist.',
+              'Sessions, the ZIP upload, device control and settings (the Nextcloud connection too) are in the browser cockpit; device control comes to the app once it is proven on real hardware.',
             ),
             style: TextStyle(color: tones.muted, fontSize: 13),
           ),

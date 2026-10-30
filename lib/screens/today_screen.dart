@@ -9,6 +9,7 @@ import '../design.dart';
 import '../events.dart';
 import '../l10n.dart';
 import '../widgets.dart';
+import 'develop_screen.dart';
 import 'hold_screen.dart';
 import 'run_screen.dart';
 
@@ -136,6 +137,13 @@ class _TodayScreenState extends State<TodayScreen> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  key: const Key('new-develop'),
+                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  onPressed: () => _open(DevelopScreen(client: widget.client)),
+                  label: Text(tr('Neue Entwicklung', 'New develop')),
                 ),
                 if (d.running.isNotEmpty) SectionTitle(tr('Entwicklung läuft', 'Developing')),
                 for (final r in d.running)

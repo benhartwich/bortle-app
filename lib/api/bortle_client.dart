@@ -11,6 +11,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../l10n.dart';
 import 'models.dart';
 import 'recipes.dart';
 
@@ -168,6 +169,50 @@ class BortleClient {
     '/api/bortle/develop/pipelines/${Uri.encodeComponent(id)}/approve',
     body: {'note': note, 'changes': changes},
   );
+
+  /// One folder of the account's Nextcloud: its subfolders, those with lights marked
+  /// as projects. Null when no Nextcloud is connected (that happens in the profile).
+  Future<NextcloudFolder?> nextcloudBrowse(String path) async {
+    final j = await _send('GET', '/api/bortle/equipment/nextcloud/browse', query: {'path': path}) as Map;
+    if (j['ok'] != true) {
+      if (j['error'] == 'not_configured') return null;
+      throw BortleError(502, tr('Nextcloud nicht erreichbar.', 'Nextcloud not reachable.'));
+    }
+    return NextcloudFolder.fromJson(j);
+  }
+
+  /// Send a Nextcloud project into production for the signed-in account. [tier] slow is
+  /// the free CPU pool, fast a paid GPU burst. Answers what the server said it does.
+  Future<String> developFromNextcloud(String project, {required String tier, required String level}) async {
+    final Map j;
+    try {
+      j =
+          await _send(
+                'POST',
+                '/api/bortle/develop/from-nextcloud',
+                body: {'project': project, 'tier': tier, 'level': level},
+              )
+              as Map;
+    } on BortleError catch (e) {
+      if (e.status != 409) rethrow;
+      throw BortleError(
+        409,
+        tr(
+          'Dieses Projekt lässt sich nicht nach Filter und Belichtung aufteilen; ein Knoten rechnet es am Stück und kann nicht mittendrin halten. Starte es automatisch.',
+          'This project cannot be split by filter and exposure; one node computes it end to end and cannot stop half-way. Start it automatic.',
+        ),
+      );
+    }
+    if (j['mode'] == 'pipeline') {
+      return j['state'] == 'waiting'
+          ? tr('Wartet auf deine Freigabe – unter Heute.', 'Waiting for your approval – under Tonight.')
+          : tr('In Produktion; hält, wenn etwas auffällt.', 'In production; stops when something stands out.');
+    }
+    final n = j['cohorts'] is List ? (j['cohorts'] as List).length : 1;
+    return j['mode'] == 'cohorts'
+        ? tr('$n Kohorten in Produktion.', '$n cohorts in production.')
+        : tr('In Produktion.', 'In production.');
+  }
 
   /// Every recipe with its corridors, the person's own included.
   Future<List<RecipeSpec>> recipes() async {

@@ -524,3 +524,23 @@ class LiveSnapshot {
 
   LiveFrame? get latest => recent.isEmpty ? null : recent.last;
 }
+
+/// One folder of the account's Nextcloud (GET /equipment/nextcloud/browse).
+class NextcloudFolder {
+  const NextcloudFolder({required this.path, required this.parent, required this.dirs});
+
+  factory NextcloudFolder.fromJson(Map j) => NextcloudFolder(
+    path: '${j['path'] ?? ''}',
+    parent: j['parent'] is String ? j['parent'] as String : null,
+    dirs: [
+      for (final d in (j['dirs'] as List? ?? const []).whereType<Map>())
+        (name: '${d['name']}', project: d['has_lights'] == true),
+    ],
+  );
+
+  final String path;
+
+  /// The folder above, null at the top.
+  final String? parent;
+  final List<({String name, bool project})> dirs;
+}
