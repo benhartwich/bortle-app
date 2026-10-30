@@ -12,6 +12,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import 'models.dart';
+import 'recipes.dart';
 
 const defaultServerUrl = 'https://bortle.eu';
 
@@ -159,8 +160,49 @@ class BortleClient {
   Future<Pipeline> pipeline(String id) async =>
       Pipeline.fromJson(await _send('GET', '/api/bortle/develop/pipelines/${Uri.encodeComponent(id)}') as Map);
 
-  Future<void> approve(String id, {String? note}) async =>
-      _send('POST', '/api/bortle/develop/pipelines/${Uri.encodeComponent(id)}/approve', body: {'note': note});
+  /// Carry on. [changes] is what the person decided at the hold: `recipes` (master ->
+  /// recipe) at the recipe hold; `redo` and `step_overrides` ({run: {op: {param: value}}})
+  /// to repeat a step with other values.
+  Future<void> approve(String id, {String? note, Map<String, Object?> changes = const {}}) async => _send(
+    'POST',
+    '/api/bortle/develop/pipelines/${Uri.encodeComponent(id)}/approve',
+    body: {'note': note, 'changes': changes},
+  );
+
+  /// Every recipe with its corridors, the person's own included.
+  Future<List<RecipeSpec>> recipes() async {
+    final j = await _send('GET', '/api/bortle/recipes') as Map;
+    return [for (final e in j.entries) RecipeSpec.fromJson('${e.key}', e.value as Map)];
+  }
+
+  /// The words for every parameter; empty from a server too old to have them.
+  Future<ParamDocs> paramDocs() async {
+    try {
+      return ParamDocs.fromJson(await _send('GET', '/api/bortle/recipes/docs') as Map);
+    } on BortleError catch (e) {
+      if (e.status == 404) return ParamDocs.empty;
+      rethrow;
+    }
+  }
+
+  /// Develop a finished run again with other values: from [resumeFrom] on when only
+  /// values of that step and later ones changed, else from the start. Answers the new
+  /// run's name.
+  Future<String> redevelop(
+    String name, {
+    required Map<String, Map<String, Object?>> overrides,
+    String? resumeFrom,
+    String? recipe,
+  }) async {
+    final j =
+        await _send(
+              'POST',
+              '/api/bortle/develop/runs/${Uri.encodeComponent(name)}/redevelop',
+              body: {'recipe': recipe, 'overrides': overrides, 'resume_from': resumeFrom},
+            )
+            as Map;
+    return '${j['run']}';
+  }
 
   Future<void> cancel(String id, {String? note}) async =>
       _send('POST', '/api/bortle/develop/pipelines/${Uri.encodeComponent(id)}/cancel', body: {'note': note});

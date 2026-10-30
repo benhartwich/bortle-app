@@ -61,19 +61,30 @@ class BortleEvent {
 }
 
 class PipelineHold {
-  const PipelineHold({required this.point, required this.reason, required this.findings, this.since});
+  const PipelineHold({
+    required this.point,
+    required this.reason,
+    required this.findings,
+    this.since,
+    this.details = const {},
+  });
 
   factory PipelineHold.fromJson(Map j) => PipelineHold(
     point: '${j['point']}',
     reason: '${j['reason'] ?? ''}',
     findings: [for (final f in (j['findings'] as List? ?? const [])) '$f'],
     since: _date(j['since']),
+    details: j['details'] is Map ? Map<String, dynamic>.from(j['details'] as Map) : const {},
   );
 
   final String point;
   final String reason;
   final List<String> findings;
   final DateTime? since;
+
+  /// What the hold shows, per point: at a step hold the run, recipe, step, next step,
+  /// the values it ran with and its previews; at the recipe hold the choice per master.
+  final Map<String, dynamic> details;
 }
 
 class Pipeline {
@@ -156,17 +167,47 @@ class DevelopRun {
 }
 
 class RunStep {
-  const RunStep({required this.op, required this.status, this.previews = const []});
+  const RunStep({
+    required this.op,
+    required this.status,
+    this.previews = const [],
+    this.params = const {},
+    this.metrics = const {},
+    this.failed = const [],
+    this.seconds,
+  });
 
-  factory RunStep.fromJson(Map j) => RunStep(
-    op: '${j['op']}',
-    status: '${j['status'] ?? ''}',
-    previews: [for (final p in (j['previews'] as List? ?? const [])) '$p'],
-  );
+  factory RunStep.fromJson(Map j) {
+    final iterations = j['iterations'] as List? ?? const [];
+    final last = iterations.isEmpty ? const {} : iterations.last as Map;
+    return RunStep(
+      op: '${j['op']}',
+      status: '${j['status'] ?? ''}',
+      previews: [for (final p in (j['previews'] as List? ?? const [])) '$p'],
+      params: {
+        for (final e in ((last['params'] as Map?) ?? const {}).entries)
+          if (e.key != 'workdir') '${e.key}': e.value,
+      },
+      metrics: {
+        for (final e in ((last['metrics_after'] as Map?) ?? const {}).entries)
+          if (e.value is num && (e.value as num).isFinite) '${e.key}': (e.value as num).toDouble(),
+      },
+      failed: [for (final f in (last['failed_expectations'] as List? ?? const [])) '$f'],
+      seconds: (j['duration_s'] as num?)?.toDouble(),
+    );
+  }
 
   final String op;
   final String status;
   final List<String> previews;
+
+  /// The values the step ran with (its last iteration).
+  final Map<String, Object?> params;
+
+  /// What was measured on the image after it: median, noise_sigma, star_count, fwhm_px …
+  final Map<String, double> metrics;
+  final List<String> failed;
+  final double? seconds;
 }
 
 class RunDetail {

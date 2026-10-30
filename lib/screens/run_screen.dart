@@ -7,9 +7,12 @@ import 'package:flutter/material.dart';
 
 import '../api/bortle_client.dart';
 import '../api/models.dart';
+import '../api/recipes.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../params.dart';
 import '../widgets.dart';
+import 'redevelop_screen.dart';
 
 class RunScreen extends StatefulWidget {
   const RunScreen({required this.client, required this.name, super.key});
@@ -23,6 +26,7 @@ class RunScreen extends StatefulWidget {
 
 class _RunScreenState extends State<RunScreen> {
   late Future<RunDetail> _run = widget.client.run(widget.name);
+  late final Future<ParamDocs> _docs = widget.client.paramDocs().catchError((Object _) => ParamDocs.empty);
   Timer? _poll;
 
   @override
@@ -99,20 +103,32 @@ class _RunScreenState extends State<RunScreen> {
                     ),
                   ),
                 ],
-                SectionTitle(tr('Schritte', 'Steps')),
-                for (final s in r.steps)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(switch (s.status) {
-                      'ok' => Icons.check,
-                      'skipped_missing' || 'skipped_off' => Icons.remove,
-                      'failed_keep' || 'failed_rollback' => Icons.close,
-                      _ => Icons.radio_button_unchecked,
-                    }, color: s.status.startsWith('failed') ? tones.danger : null),
-                    title: Text(opLabel(s.op)),
-                    trailing: Text(_stepState(s.status), style: TextStyle(color: tones.muted, fontSize: 12)),
+                if (r.status == 'done' && r.steps.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    key: const Key('develop-again'),
+                    icon: const Icon(Icons.tune),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => RedevelopScreen(client: widget.client, run: r),
+                      ),
+                    ),
+                    label: Text(tr('Mit eigenen Werten neu entwickeln', 'Develop again with your own values')),
                   ),
+                ],
+                SectionTitle(tr('Schritte', 'Steps')),
+                FutureBuilder<ParamDocs>(
+                  future: _docs,
+                  builder: (context, docsSnap) {
+                    final docs = docsSnap.data ?? ParamDocs.empty;
+                    return Column(
+                      children: [
+                        for (final (i, s) in r.steps.indexed)
+                          _StepTile(client: widget.client, steps: r.steps, index: i, docs: docs, step: s),
+                      ],
+                    );
+                  },
+                ),
                 if (r.steps.isEmpty)
                   Text(tr('Noch kein Schritt fertig.', 'No step finished yet.'), style: TextStyle(color: tones.muted)),
               ],
@@ -133,3 +149,92 @@ String _stepState(String status) => switch (status) {
   'failed_rollback' => tr('fehlgeschlagen, zurückgenommen', 'failed, rolled back'),
   _ => status,
 };
+
+/// One step of the run: its state and duration; opened, the image before and after it,
+/// what moved in the measurements, and the values it ran with.
+class _StepTile extends StatelessWidget {
+  const _StepTile({
+    required this.client,
+    required this.steps,
+    required this.index,
+    required this.docs,
+    required this.step,
+  });
+
+  final BortleClient client;
+  final List<RunStep> steps;
+  final int index;
+  final ParamDocs docs;
+  final RunStep step;
+
+  @override
+  Widget build(BuildContext context) {
+    final tones = context.tones;
+    final before = stepBefore(steps, index);
+    final shown = fullPreview(step.previews);
+    final hasMore = shown != null || step.metrics.isNotEmpty || step.params.isNotEmpty || step.failed.isNotEmpty;
+    final icon = Icon(switch (step.status) {
+      'ok' => Icons.check,
+      'skipped_missing' || 'skipped_off' => Icons.remove,
+      'failed_keep' || 'failed_rollback' => Icons.close,
+      _ => Icons.radio_button_unchecked,
+    }, color: step.status.startsWith('failed') ? tones.danger : null);
+    final state = [
+      _stepState(step.status),
+      if (step.seconds != null)
+        step.seconds! >= 90 ? '${(step.seconds! / 60).round()} min' : '${step.seconds!.round()} s',
+    ].join(' · ');
+    final title = Text(docs.stepName(step.op));
+    if (!hasMore) {
+      return ListTile(
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        leading: icon,
+        title: title,
+        trailing: Text(state, style: TextStyle(color: tones.muted, fontSize: 12)),
+      );
+    }
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        leading: icon,
+        title: title,
+        subtitle: Text(state, style: TextStyle(color: tones.muted, fontSize: 12)),
+        childrenPadding: const EdgeInsets.only(left: 8, bottom: 12),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final f in step.failed) Text('• $f', style: TextStyle(color: tones.warn, fontSize: 13)),
+          if (shown != null) ...[
+            const SizedBox(height: 8),
+            BeforeAfter(client: client, before: before == null ? null : fullPreview(before.previews), after: shown),
+          ],
+          if (step.metrics.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            MetricsDelta(after: step.metrics, before: before?.metrics, linear: linearAt(steps, index)),
+          ],
+          if (step.params.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              tr('Werte dieses Schritts', 'Values of this step'),
+              style: TextStyle(color: tones.muted, fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            for (final e in step.params.entries)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(docs.of(step.op, e.key)?.label?.text ?? e.key, style: const TextStyle(fontSize: 13)),
+                    ),
+                    Text(formatParam(e.value, docs.of(step.op, e.key)), style: const TextStyle(fontSize: 13)),
+                  ],
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}

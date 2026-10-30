@@ -25,6 +25,10 @@ class FakeServer {
   bool signedOut = false;
   final revoked = <String>[];
   Map<String, Object?>? pushRegistration;
+
+  /// The last answer at the step hold p2, and the last redevelop asked for.
+  Map<String, Object?>? stepAnswer;
+  Map<String, Object?>? redevelopBody;
   bool pushDropped = false;
 
   static const token = 'bat_test-token';
@@ -97,6 +101,22 @@ class FakeServer {
         return json(approved || cancelled ? [] : [_pipeline]);
       case ('GET', '/api/bortle/develop/pipelines/p1'):
         return json(_pipeline);
+      case ('GET', '/api/bortle/develop/pipelines/p2'):
+        return json(_stepPipeline);
+      case ('POST', '/api/bortle/develop/pipelines/p2/approve'):
+        stepAnswer = (jsonDecode(request.body) as Map).cast<String, Object?>();
+        return json({'pipeline': 'p2', 'state': 'queued'});
+      case ('GET', '/api/bortle/recipes'):
+        return json(_recipes);
+      case ('GET', '/api/bortle/recipes/docs'):
+        return json(_docs);
+      case ('GET', '/api/bortle/develop/runs/M33_galaxy'):
+        return json(_m33);
+      case ('POST', '/api/bortle/develop/runs/M33_galaxy/redevelop'):
+        redevelopBody = (jsonDecode(request.body) as Map).cast<String, Object?>();
+        return json({'queued': true, 'run': 'M33_galaxy~2'});
+      case ('GET', '/api/bortle/develop/runs/M33_galaxy~2'):
+        return json({..._m33, 'name': 'M33_galaxy~2', 'status': 'running'});
       case ('POST', '/api/bortle/develop/pipelines/p1/approve'):
         approved = true;
         return json({'pipeline': 'p1', 'state': 'queued'});
@@ -203,6 +223,177 @@ class FakeServer {
     if (path.startsWith('/api/bortle/data/')) return http.Response('', 404);
     return json({'error': 'not found'}, 404);
   });
+
+  static final _stepPipeline = {
+    'id': 'p2',
+    'source': 'upload',
+    'subject': 'M 33',
+    'owner': 'ben',
+    'level': 'stepwise',
+    'step_holds': true,
+    'state': 'waiting',
+    'hold': {
+      'point': 'steps',
+      'reason': 'stepwise, holding after every step',
+      'findings': [],
+      'details': {
+        'key': 'M33_galaxy:stretch',
+        'run': 'M33_galaxy',
+        'recipe': 'galaxy',
+        'step': 'stretch',
+        'status': 'ok',
+        'next': 'finish',
+        'params': {'target_background': 0.2, 'linked': true},
+        'failed_expectations': [],
+        'previews': [
+          'develop/M33_galaxy/02_stretch/iter1/previews/result_center.jpg',
+          'develop/M33_galaxy/02_stretch/iter1/previews/result_full.jpg',
+        ],
+      },
+      'since': '2026-10-28T21:40:00Z',
+    },
+    'history': [],
+    'runs': ['M33_galaxy'],
+  };
+
+  // galaxy, cut down: a step that runs twice with a per-step target, a stretch with a
+  // number and a switch, and a knob that does nothing
+  static final _recipes = {
+    'galaxy': {
+      'version': 4,
+      'source': 'builtin',
+      'steps': [
+        {
+          'op': 'deconvolve_or_sharpen',
+          'params': {
+            'strength': {'default': 0.5, 'min': 0.2, 'max': 0.7, 'choices': null},
+            'target': {
+              'default': 'object',
+              'min': null,
+              'max': null,
+              'choices': ['stellar', 'object'],
+            },
+          },
+        },
+        {
+          'op': 'deconvolve_or_sharpen',
+          'params': {
+            'strength': {'default': 0.5, 'min': 0.2, 'max': 0.7, 'choices': null},
+            'target': {
+              'default': 'stellar',
+              'min': null,
+              'max': null,
+              'choices': ['stellar', 'object'],
+            },
+          },
+        },
+        {
+          'op': 'stretch',
+          'params': {
+            'target_background': {'default': 0.2, 'min': 0.08, 'max': 0.28, 'choices': null},
+            'linked': {
+              'default': true,
+              'min': null,
+              'max': null,
+              'choices': [true, false],
+            },
+            'target_highlight': {'default': 0.97, 'min': 0.9, 'max': 0.99, 'choices': null},
+          },
+        },
+      ],
+    },
+  };
+
+  static Map<String, Object?> _w(String de, String en) => {'de': de, 'en': en};
+
+  static final _docs = {
+    'deconvolve_or_sharpen': {
+      '_op': {'label': _w('Entfalten / Schärfen', 'Deconvolve / sharpen'), 'help': _w('Schärft.', 'Sharpens.')},
+      'strength': {
+        'label': _w('Stärke', 'Strength'),
+        'help': _w('Wie kräftig.', 'How strong.'),
+        'low': _w('weniger: weicher', 'lower: softer'),
+        'high': _w('mehr: knackiger', 'higher: crisper'),
+      },
+      'target': {
+        'label': _w('Ziel', 'Target'),
+        'help': _w('Objekt oder Sterne.', 'Object or stars.'),
+        'choices': {'stellar': _w('Sterne', 'Stars'), 'object': _w('Objekt', 'Object')},
+      },
+    },
+    'stretch': {
+      '_op': {'label': _w('Strecken', 'Stretch'), 'help': _w('Macht das Bild hell.', 'Brightens the image.')},
+      'target_background': {
+        'label': _w('Hintergrund-Ziel', 'Background target'),
+        'help': _w('Wie hell der Himmel wird.', 'How bright the sky gets.'),
+        'low': _w('weniger: dunkler', 'lower: darker'),
+        'high': _w('mehr: heller', 'higher: brighter'),
+        'percent': true,
+      },
+      'linked': {
+        'label': _w('Kanäle verknüpft', 'Channels linked'),
+        'help': _w('Alle Farben gleich strecken.', 'Stretch all colours alike.'),
+        'choices': {'true': _w('gemeinsam', 'together'), 'false': _w('je Kanal', 'per channel')},
+      },
+      'target_highlight': {
+        'label': _w('Sternlicht-Grenze', 'Star highlight ceiling'),
+        'help': _w('Gedacht als Grenze.', 'Intended as a ceiling.'),
+        'low': _w('weniger', 'lower'),
+        'high': _w('mehr', 'higher'),
+        'inert': true,
+        'note': _w('Hat derzeit keine Wirkung.', 'Currently has no effect.'),
+      },
+    },
+  };
+
+  static final _m33 = {
+    'name': 'M33_galaxy',
+    'recipe': 'galaxy',
+    'title': 'M 33',
+    'version': 4,
+    'status': 'done',
+    'total_steps': 3,
+    'steps': [
+      {
+        'op': 'deconvolve_or_sharpen',
+        'status': 'ok',
+        'duration_s': 30,
+        'iterations': [
+          {
+            'iteration': 1,
+            'params': {'strength': 0.5, 'target': 'object', 'workdir': '/x'},
+            'metrics_after': {'noise_sigma': 0.00002, 'star_count': 1800.0, 'fwhm_px': 2.9},
+          },
+        ],
+        'previews': [],
+      },
+      {
+        'op': 'deconvolve_or_sharpen',
+        'status': 'ok',
+        'iterations': [
+          {
+            'iteration': 1,
+            'params': {'strength': 0.5, 'target': 'stellar'},
+            'metrics_after': {'noise_sigma': 0.00002, 'star_count': 1700.0, 'fwhm_px': 2.4},
+          },
+        ],
+        'previews': [],
+      },
+      {
+        'op': 'stretch',
+        'status': 'ok',
+        'iterations': [
+          {
+            'iteration': 1,
+            'params': {'target_background': 0.2, 'linked': true, 'target_highlight': 0.97},
+            'metrics_after': {'median': 0.21, 'star_count': 1650.0, 'highlight_clip_fraction': 0.0001},
+          },
+        ],
+        'previews': [],
+      },
+    ],
+    'final_previews': {},
+  };
 
   static final _pipeline = {
     'id': 'p1',
