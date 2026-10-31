@@ -1,0 +1,32 @@
+PURPOSE AND AUDIENCE
+Bortle is the companion app for Bortle, an open-source (AGPL) cockpit for astrophotography: planning a night, capturing with N.I.N.A. on the user's own telescope, quality control, stacking and developing the raw frames to a finished image. It is for amateur astronomers who photograph deep-sky objects. The app shows the user's Bortle on the phone, on bortle.eu or on the user's own server: tonight's state, approvals Bortle asks for, the night's frames, planning, and the finished images. Without an account, the app offers basic tools for any amateur astronomer.
+
+HOW TO USE IT
+Without an account (login screen → "Tools for the night"): tonight's darkness and moon for the phone's location, when an object is best visible, an optics calculator (image scale, field of view) and the night's weather and seeing. Location is coarse and optional; latitude and longitude can also be typed.
+With the demo account in the Sign-In Information: enter the server https://bortle.eu, then user name and password.
+1. Tonight: the night's state, running developments, and approvals to answer.
+2. Plan: look up an object and see its altitude tonight; recommendations for the night.
+3. Telescope: shows the user's own N.I.N.A. rig. The demo account has no telescope, so this tab says that only the operator of a telescope can use it. Mount safety (parking, aborts) always stays in N.I.N.A.
+4. Gallery: the account's finished images and the log of every run, step by step. A run can be developed again with changed, explained values.
+5. More: devices signed in with this account, sign out.
+
+ACCOUNTS AND USER CONTENT
+The app does not create accounts; accounts on bortle.eu are given out by the operator, and people with their own install manage their own.
+Account deletion: on request to info@bortle.eu, done within 30 days; https://bortle.eu/delete-account explains it. Signing a device out works at once in the app (More → Sign out).
+User content: each account sees only its own images and data. There is no feed, chat or content from other users, so there is nothing to report or block.
+There is no paid content and no in-app purchase.
+
+EXTERNAL SERVICES
+- bortle.eu: our own server (open source); accounts, images, processing. Or the user's own Bortle server.
+- Open-Meteo and 7Timer!: weather and seeing for the tools, asked by bortle.eu with the place rounded to about 10 km.
+- Anthropic (Claude): bortle.eu uses it on the server to rate image quality and help plan; the app does not call it, and no personal data is sent.
+- Nextcloud: only when the user connects their own Nextcloud in the web cockpit, as a source of raw frames.
+- Firebase Cloud Messaging: push notifications (approval waiting, image done, night over).
+- The object catalogue is built into the app (OpenNGC, CC BY-SA); sky calculations run on the phone.
+There is no advertising, tracking or analytics.
+
+REGIONS
+The app works the same in every region. Texts are German and English.
+
+REGULATION
+Not a regulated field; no protected third-party material. Data sources are used under their public licences.
