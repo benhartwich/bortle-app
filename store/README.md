@@ -16,6 +16,7 @@ appstore/<language>/subtitle.txt      ≤ 30
 appstore/<language>/keywords.txt      ≤ 100, comma separated
 appstore/<language>/promotional_text.txt ≤ 170
 appstore/screenshots/<language>/      1320 × 2868 (6.9″), eight
+appstore/review_notes.txt             ≤ 4000, English, the App Review notes (no credentials)
 ```
 
 Languages: `de-DE` (default) and `en-US`.
@@ -66,4 +67,5 @@ The API cannot fill these; they are answered once by hand.
   info@bortle.eu, website and support URL https://bortle.eu.
 - **App Store age rating:** none of the content questions apply (no web browser, no chat,
   no other people's content).
-- **App Store review:** the same test account as for Play, in the review contact.
+- **App Store review:** the same test account as for Play, entered in App Store Connect's
+  Sign-In Information (never in the repo); the notes come from `appstore/review_notes.txt`.
