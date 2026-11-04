@@ -8,7 +8,14 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 class FakeServer {
-  FakeServer({this.localMode = false, this.admin = true, this.ninaUp = true});
+  FakeServer({this.localMode = false, this.admin = true, this.ninaUp = true, this.demo = false, this.hasSite = true});
+
+  /// The app-review account: the rig's reads answer from a recording.
+  final bool demo;
+
+  /// Whether the account's profile has a site; planning answers 400 without one.
+  bool hasSite;
+  Map<String, Object?>? savedSite;
 
   final bool localMode;
 
@@ -52,7 +59,7 @@ class FakeServer {
         return json({
           'token': token,
           'device': {'id': 'd1', 'label': body['device'], 'createdAt': '2026-10-28T08:00:00Z', 'lastUsedAt': null},
-          'user': {'name': 'ben', 'admin': admin},
+          'user': {'name': 'ben', 'admin': admin, 'demo': demo},
         });
       }
       return json({'error': 'Name/E-Mail oder Passwort falsch.'}, 401);
@@ -62,7 +69,7 @@ class FakeServer {
     switch ((request.method, path)) {
       case ('GET', '/api/app/session'):
         return json({
-          'user': {'name': 'ben', 'admin': admin},
+          'user': {'name': 'ben', 'admin': admin, 'demo': demo},
         });
       case ('POST', '/api/auth/delete-account'):
         if ((jsonDecode(request.body) as Map)['password'] != 'right') {
@@ -207,10 +214,31 @@ class FakeServer {
         ]);
     }
     // the operator's rig, as proxy.ts guards it
-    if ((path.startsWith('/api/bortle/nina/') || path == '/api/bortle/plan/nina') && !admin && !localMode) {
+    final recorded = demo && request.method == 'GET' && path.startsWith('/api/bortle/nina/');
+    if ((path.startsWith('/api/bortle/nina/') || path == '/api/bortle/plan/nina') &&
+        !admin &&
+        !localMode &&
+        !recorded) {
       return json({'detail': 'Das Teleskop dieser Instanz bedient nur der Betreiber.'}, 403);
     }
+    if (!hasSite && (path == '/api/bortle/plan' || path == '/api/bortle/plan/recommend')) {
+      return json({'detail': 'Kein Standort: Breite/Länge im Equipment-Profil eintragen'}, 400);
+    }
     switch ((request.method, path)) {
+      case ('POST', '/api/equipment'):
+        savedSite = (jsonDecode(request.body) as Map).cast<String, Object?>();
+        hasSite = true;
+        return json({'ok': true, 'profile': savedSite});
+      case ('GET', '/api/bortle/plan/resolve'):
+        return json({
+          'object': 'NGC 7000',
+          'common': 'North America Nebula',
+          'type': 'HII',
+          'ra_deg': 314.75,
+          'dec_deg': 44.33,
+          'epoch': 'J2000',
+          'source': 'catalog',
+        });
       case ('GET', '/api/bortle/plan/suggest'):
         return http.Response(fixture('suggest_ngc7.json'), 200, headers: {'content-type': 'application/json'});
       case ('GET', '/api/bortle/plan'):

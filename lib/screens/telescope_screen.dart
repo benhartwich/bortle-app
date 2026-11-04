@@ -43,9 +43,13 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
 
   bool get _operator => widget.me == null || widget.me!.admin;
 
+  /// The review account: a recorded night to look at, nothing to control.
+  bool get _demo => !_operator && widget.me!.demo;
+
   @override
   Widget build(BuildContext context) {
     final tones = context.tones;
+    final views = _operator || _demo;
     return Scaffold(
       appBar: AppBar(
         title: Text(tr('Teleskop', 'Telescope')),
@@ -56,7 +60,7 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
             icon: Icon(Icons.dark_mode_outlined, color: tones.danger),
           ),
         ],
-        bottom: _operator
+        bottom: views
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(56),
                 child: Padding(
@@ -83,7 +87,7 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
               )
             : null,
       ),
-      body: !_operator
+      body: !views
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
@@ -97,35 +101,79 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
                 ),
               ),
             )
-          : switch (_view) {
-              _View.overview => _Overview(client: widget.client, active: widget.active),
-              _View.frames => _Frames(client: widget.client),
-              _View.history => _History(client: widget.client),
-              _View.control => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Text(
-                    tr(
-                      'Montierung, Kamera, Fokus, Guiding und Filter steuern kommt in Stufe 3 – erst wenn die Steuerung an echter Hardware bewiesen ist.',
-                      'Controlling mount, camera, focus, guiding and filters arrives in stage 3 – once control is proven on real hardware.',
-                    ),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: tones.muted),
-                  ),
-                ),
-              ),
-            },
+          : Column(
+              children: [
+                if (_demo) const _RecordedBanner(),
+                Expanded(child: _body(tones)),
+              ],
+            ),
     );
   }
+
+  Widget _body(Tones tones) => switch (_view) {
+    _View.overview => _Overview(client: widget.client, active: widget.active, readOnly: _demo),
+    _View.frames => _Frames(client: widget.client),
+    _View.history => _History(client: widget.client),
+    _View.control when _demo => Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Text(
+          tr(
+            'In der Demo steuert nichts ein Teleskop. Am eigenen Teleskop zeigt dieser Reiter die Nacht, wie NINA sie fährt; die Sicherheit (Parken, Abbruch, Meridian-Flip) bleibt immer bei NINA.',
+            'In the demo nothing controls a telescope. With your own telescope this tab shows the night as NINA runs it; safety (parking, aborts, meridian flip) always stays with NINA.',
+          ),
+          textAlign: TextAlign.center,
+          style: TextStyle(color: tones.muted),
+        ),
+      ),
+    ),
+    _View.control => Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Text(
+          tr(
+            'Montierung, Kamera, Fokus, Guiding und Filter steuern kommt in Stufe 3 – erst wenn die Steuerung an echter Hardware bewiesen ist.',
+            'Controlling mount, camera, focus, guiding and filters arrives in stage 3 – once control is proven on real hardware.',
+          ),
+          textAlign: TextAlign.center,
+          style: TextStyle(color: tones.muted),
+        ),
+      ),
+    ),
+  };
+}
+
+/// Says what the review account is looking at, above every view.
+class _RecordedBanner extends StatelessWidget {
+  const _RecordedBanner();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const Key('recorded-night'),
+    width: double.infinity,
+    margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    decoration: BoxDecoration(color: context.tones.surface, borderRadius: BorderRadius.circular(Sky.radius)),
+    child: Text(
+      tr(
+        'Demo: eine echte, aufgezeichnete Nacht mit ihren gemessenen Werten. Hier wird kein Teleskop gesteuert.',
+        'Demo: a real recorded night with its measured values. No telescope is controlled here.',
+      ),
+      style: const TextStyle(fontSize: 13),
+    ),
+  );
 }
 
 // --- overview ----------------------------------------------------------------------
 
 class _Overview extends StatefulWidget {
-  const _Overview({required this.client, required this.active});
+  const _Overview({required this.client, required this.active, this.readOnly = false});
 
   final BortleClient client;
   final bool active;
+
+  /// The recorded night: nothing to stop or end.
+  final bool readOnly;
 
   @override
   State<_Overview> createState() => _OverviewState();
@@ -337,7 +385,7 @@ class _OverviewState extends State<_Overview> {
             ],
           ),
           const SizedBox(height: 16),
-          if (live.sequenceRunning) ...[
+          if (live.sequenceRunning && !widget.readOnly) ...[
             OutlinedButton(
               key: const Key('sequence-stop'),
               onPressed: _busy

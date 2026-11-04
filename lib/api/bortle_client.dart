@@ -279,6 +279,18 @@ class BortleClient {
     return [for (final s in j) Suggestion.fromJson(s as Map)];
   }
 
+  /// Where a name is in the sky; unlike [plan] this needs no site.
+  Future<SkyObject> resolve(String object) async =>
+      SkyObject.fromJson(await _send('GET', '/api/bortle/plan/resolve', query: {'object': object}) as Map);
+
+  /// The account's observing site, kept in its profile with the rest of the equipment
+  /// (the cockpit merges it in, nothing else of the profile changes).
+  Future<void> saveSite(double latitude, double longitude) async =>
+      _send('POST', '/api/equipment', body: {'latitude': latitude, 'longitude': longitude});
+
+  /// Whether [error] is the 400 the planning endpoints answer when the profile has no site.
+  static bool isNoSite(Object error) => error is BortleError && error.status == 400;
+
   Future<NightPlan> plan(String object) async =>
       NightPlan.fromJson(await _send('GET', '/api/bortle/plan', query: {'object': object}) as Map);
 
