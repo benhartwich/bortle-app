@@ -11,6 +11,7 @@ import '../design.dart';
 import '../l10n.dart';
 import '../optics.dart';
 import '../widgets.dart';
+import 'site_picker.dart';
 import 'tools_store.dart';
 import 'weather.dart';
 
@@ -94,44 +95,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
   }
 
   Future<void> _typeSite() async {
-    final lat = TextEditingController(text: _site == null ? '' : _site!.lat.toStringAsFixed(3));
-    final lon = TextEditingController(text: _site == null ? '' : _site!.lon.toStringAsFixed(3));
-    final site = await showDialog<Site>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(tr('Standort eingeben', 'Enter a site')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              key: const Key('lat'),
-              controller: lat,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-              decoration: InputDecoration(labelText: tr('Breite (Nord +, Süd −)', 'Latitude (north +, south −)')),
-            ),
-            TextField(
-              key: const Key('lon'),
-              controller: lon,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-              decoration: InputDecoration(labelText: tr('Länge (Ost +, West −)', 'Longitude (east +, west −)')),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(tr('Abbrechen', 'Cancel'))),
-          FilledButton(
-            key: const Key('site-ok'),
-            onPressed: () {
-              final a = double.tryParse(lat.text.replaceAll(',', '.'));
-              final b = double.tryParse(lon.text.replaceAll(',', '.'));
-              if (a == null || b == null || a.abs() > 90 || b.abs() > 180) return;
-              Navigator.of(context).pop(Site(a, b));
-            },
-            child: Text(tr('Übernehmen', 'Use')),
-          ),
-        ],
-      ),
-    );
+    final site = await typeSite(context, initial: _site);
     if (site != null) await _setSite(site);
   }
 
@@ -226,23 +190,13 @@ class _NoSite extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(24),
     children: [
-      Text(
-        tr(
+      SiteChoice(
+        explanation: tr(
           'Für Dämmerung, Mond und Objekthöhen braucht es den Ort, an dem du beobachtest. Er wird nur auf dem Telefon verwendet.',
           'Twilight, the moon and altitudes need the place you observe from. It is used on the phone only.',
         ),
-      ),
-      const SizedBox(height: 16),
-      FilledButton.icon(
-        onPressed: onLocate,
-        icon: const Icon(Icons.my_location),
-        label: Text(tr('Standort des Telefons verwenden', "Use the phone's location")),
-      ),
-      const SizedBox(height: 8),
-      OutlinedButton.icon(
-        onPressed: onType,
-        icon: const Icon(Icons.edit_location_alt_outlined),
-        label: Text(tr('Breite und Länge eingeben', 'Enter latitude and longitude')),
+        onLocate: onLocate,
+        onType: onType,
       ),
     ],
   );

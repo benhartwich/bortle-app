@@ -9,12 +9,32 @@ String? _str(Object? v) => v is String && v.isNotEmpty ? v : null;
 int _int(Object? v) => v is num ? v.toInt() : 0;
 
 class Me {
-  const Me({required this.name, required this.admin});
+  const Me({required this.name, required this.admin, this.demo = false});
 
-  factory Me.fromJson(Map j) => Me(name: '${j['name']}', admin: j['admin'] == true);
+  factory Me.fromJson(Map j) => Me(name: '${j['name']}', admin: j['admin'] == true, demo: j['demo'] == true);
 
   final String name;
   final bool admin;
+
+  /// The account the app stores review with: its Telescope tab shows a recorded night.
+  final bool demo;
+}
+
+/// A name from the object search, placed in the sky (GET /plan/resolve, J2000). Needs no site.
+class SkyObject {
+  const SkyObject({required this.name, this.common, required this.raDeg, required this.decDeg});
+
+  factory SkyObject.fromJson(Map j) => SkyObject(
+    name: '${j['object']}',
+    common: _str(j['common']),
+    raDeg: (j['ra_deg'] as num).toDouble(),
+    decDeg: (j['dec_deg'] as num).toDouble(),
+  );
+
+  final String name;
+  final String? common;
+  final double raDeg;
+  final double decDeg;
 }
 
 class AppDevice {
@@ -477,9 +497,12 @@ class LiveSnapshot {
     this.usable,
     this.usableMinutes,
     this.recent = const [],
+    this.recordedTarget,
+    this.recordedNight,
   });
 
   factory LiveSnapshot.fromJson(Map j) {
+    final recorded = j['recorded'] as Map?;
     final devices = (j['devices'] as Map?) ?? const {};
     final guiding = (j['guiding'] as Map?) ?? const {};
     final sequence = (j['sequence'] as Map?) ?? const {};
@@ -507,8 +530,14 @@ class LiveSnapshot {
       usable: (progress?['usable'] as num?)?.toInt(),
       usableMinutes: _dbl(progress?['usable_minutes']),
       recent: [for (final f in (frames['recent'] as List? ?? const [])) LiveFrame.fromJson(f as Map)],
+      recordedTarget: _str(recorded?['target']),
+      recordedNight: _date(recorded?['night']),
     );
   }
+
+  /// Set when this is a recorded night (the review account's), not the rig right now.
+  final String? recordedTarget;
+  final DateTime? recordedNight;
 
   final List<DeviceState> devices;
 

@@ -8,15 +8,21 @@ import '../api/models.dart';
 import '../charts.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../tools/site_picker.dart';
+import '../tools/tools_store.dart';
 import '../widgets.dart';
 
 class PlanScreen extends StatefulWidget {
-  const PlanScreen({required this.client, required this.me, super.key});
+  const PlanScreen({required this.client, required this.me, Locate? locate, super.key})
+    : locate = locate ?? locateWithGps;
 
   final BortleClient client;
 
   /// Null in local mode, where the one user is the operator.
   final Me? me;
+
+  /// The phone's coarse location, for an account whose profile has no site yet.
+  final Locate locate;
 
   @override
   State<PlanScreen> createState() => _PlanScreenState();
@@ -29,11 +35,16 @@ class _PlanScreenState extends State<PlanScreen> {
   final _count = TextEditingController(text: '60');
   String _level = 'auto';
   String? _filter;
-  late final Future<List<Recommendation>> _recommended = widget.client.recommend().catchError(
-    (Object _) => const <Recommendation>[],
-  );
+  late Future<List<Recommendation>?> _recommended = _recommend();
   bool _start = false;
   bool _busy = false;
+  bool _savingSite = false;
+
+  /// Null: the profile has no site, so there is nothing to rank by.
+  Future<List<Recommendation>?> _recommend() => widget.client.recommend().then<List<Recommendation>?>(
+    (list) => list,
+    onError: (Object e) => BortleClient.isNoSite(e) ? null : const <Recommendation>[],
+  );
 
   bool get _operator => widget.me == null || widget.me!.admin;
 
@@ -49,11 +60,125 @@ class _PlanScreenState extends State<PlanScreen> {
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _object = object;
-      _plan = widget.client.plan(object);
+      _plan = _planFor(object);
       // what the recommendation measured for this rig; a searched object keeps the defaults
       _filter = from?.filter;
       if (from?.exposureS != null) _exposure.text = from!.exposureS!.round().toString();
     });
+  }
+
+  /// The night for an object. Its error is the FutureBuilder's to show — the no-site 400
+  /// among them — and may arrive before that builder listens, so it is marked handled here.
+  Future<NightPlan> _planFor(String object) => widget.client.plan(object)..ignore();
+
+  Future<void> _locateSite() async {
+    final messenger = ScaffoldMessenger.of(context);
+    Site? site;
+    try {
+      site = await widget.locate();
+    } on Exception {
+      site = null;
+    }
+    if (site == null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            tr(
+              'Standort nicht verfügbar – ist er aus oder nicht erlaubt? Du kannst ihn auch eintippen.',
+              'Location not available – is it off or not allowed? You can also type it.',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    await _saveSite(site);
+  }
+
+  Future<void> _typeSite() async {
+    final site = await typeSite(context);
+    if (site != null) await _saveSite(site);
+  }
+
+  /// Into the account's profile, rounded to about a kilometre: enough for altitudes and
+  /// twilight, and no more of where someone lives than that.
+  Future<void> _saveSite(Site site) async {
+    setState(() => _savingSite = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      double round(double v) => (v * 100).roundToDouble() / 100;
+      await widget.client.saveSite(round(site.lat), round(site.lon));
+      if (!mounted) return;
+      setState(() {
+        _recommended = _recommend();
+        if (_object != null) _plan = _planFor(_object!);
+      });
+      messenger.showSnackBar(
+        SnackBar(content: Text(tr('Standort im Profil gespeichert.', 'Site saved in your profile.'))),
+      );
+    } on BortleError catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _savingSite = false);
+    }
+  }
+
+  Widget _siteChoice() => Card(
+    key: const Key('no-site'),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: SiteChoice(
+        explanation: tr(
+          'Für Höhe, Mond und das beste Fenster braucht Bortle den Ort, an dem du beobachtest. Er wird gerundet in deinem Profil gespeichert und gilt auch im Web.',
+          'Altitude, the moon and the best window need the place you observe from. It is kept, rounded, in your profile and applies on the web too.',
+        ),
+        onLocate: _savingSite ? null : _locateSite,
+        onType: _savingSite ? null : _typeSite,
+      ),
+    ),
+  );
+
+  /// What the search found, placed in the sky, while the night itself waits for a site.
+  Widget _withoutSite(BuildContext context, String object) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const SizedBox(height: 16),
+      FutureBuilder<SkyObject>(
+        future: widget.client.resolve(object),
+        builder: (context, snap) {
+          final hit = snap.data;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(hit?.name ?? object, style: Theme.of(context).textTheme.headlineSmall),
+              if (hit != null)
+                Text(
+                  [?hit.common, 'RA ${_ra(hit.raDeg)} · Dec ${_dec(hit.decDeg)}'].join('\n'),
+                  key: const Key('object-position'),
+                  style: TextStyle(color: context.tones.muted),
+                ),
+              if (snap.hasError)
+                Text(
+                  tr('Dieses Objekt kennt Bortle nicht.', 'Bortle does not know this object.'),
+                  style: TextStyle(color: context.tones.warn),
+                ),
+            ],
+          );
+        },
+      ),
+      const SizedBox(height: 12),
+      _siteChoice(),
+    ],
+  );
+
+  static String _ra(double deg) {
+    final minutes = (deg / 15 * 60).round();
+    return '${minutes ~/ 60}h ${(minutes % 60).toString().padLeft(2, '0')}m';
+  }
+
+  static String _dec(double deg) {
+    final minutes = (deg.abs() * 60).round();
+    return "${deg < 0 ? '−' : '+'}${minutes ~/ 60}° ${(minutes % 60).toString().padLeft(2, '0')}′";
   }
 
   Future<void> _send(NightPlan plan) async {
@@ -142,17 +267,15 @@ class _PlanScreenState extends State<PlanScreen> {
             ),
           ),
           SectionTitle(tr('Empfehlungen für heute Nacht', 'Recommended for tonight')),
-          FutureBuilder<List<Recommendation>>(
+          FutureBuilder<List<Recommendation>?>(
             future: _recommended,
             builder: (context, snap) {
               if (snap.connectionState != ConnectionState.done) return const LinearProgressIndicator();
-              final list = snap.data ?? const <Recommendation>[];
+              final list = snap.data;
+              if (list == null) return _siteChoice();
               if (list.isEmpty) {
                 return Text(
-                  tr(
-                    'Keine Empfehlungen – ist im Profil ein Standort eingetragen?',
-                    'No recommendations – is a site set in your profile?',
-                  ),
+                  tr('Heute Nacht keine Empfehlungen.', 'No recommendations tonight.'),
                   style: TextStyle(color: context.tones.muted),
                 );
               }
@@ -196,6 +319,7 @@ class _PlanScreenState extends State<PlanScreen> {
           FutureBuilder<NightPlan>(
             future: _plan,
             builder: (context, snap) {
+              if (snap.hasError && BortleClient.isNoSite(snap.error!)) return _withoutSite(context, _object!);
               if (snap.hasError) return LoadError(snap.error!, onRetry: () => _pick(_object!));
               final plan = snap.data;
               if (plan == null) {

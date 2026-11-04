@@ -151,4 +151,51 @@ void main() {
     expect(find.byKey(const Key('send')), findsNothing);
     expect(server.requests.where((r) => r.url.path.startsWith('/api/bortle/nina/')), isEmpty);
   });
+
+  testWidgets('the review account looks at a recorded night and controls nothing', (tester) async {
+    phone(tester);
+    final server = FakeServer(admin: false, demo: true);
+    await tester.pumpWidget(app(server));
+    await tester.pumpAndSettle();
+    await openTab(tester, 'Teleskop');
+
+    expect(find.byKey(const Key('recorded-night')), findsOneWidget);
+    expect(find.text('HFR'), findsOneWidget);
+    // the recording says a sequence ran; still nothing to stop
+    expect(find.byKey(const Key('sequence-stop')), findsNothing);
+    expect(find.byKey(const Key('end-night')), findsNothing);
+    await tester.tap(find.text('Steuern'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('In der Demo steuert nichts ein Teleskop'), findsOneWidget);
+    expect(server.controls, isEmpty);
+  });
+
+  testWidgets('without a site the search still places the object, and the site is set right there', (tester) async {
+    phone(tester);
+    final server = FakeServer(hasSite: false);
+    await tester.pumpWidget(app(server));
+    await tester.pumpAndSettle();
+    await openTab(tester, 'Planen');
+    // no recommendations without a site: the way to one instead
+    expect(find.byKey(const Key('no-site')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('object')), 'NGC 7');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('NGC7000').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('object-position')), findsOneWidget);
+    expect(find.textContaining('RA 20h 59m'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('site-type')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('lat')), '52,7043');
+    await tester.enterText(find.byKey(const Key('lon')), '12.3061');
+    await tester.tap(find.byKey(const Key('site-ok')));
+    await tester.pumpAndSettle();
+
+    // kept rounded in the profile, and the night is computed at once
+    expect(server.savedSite, {'latitude': 52.7, 'longitude': 12.31});
+    expect(find.text('Höhe heute Nacht'), findsOneWidget);
+    expect(find.byKey(const Key('no-site')), findsNothing);
+  });
 }
