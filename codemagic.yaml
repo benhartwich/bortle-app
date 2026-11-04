@@ -86,3 +86,54 @@ workflows:
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
+
+  # Manual: store screenshots of the real app against bortle.eu, signed in as the review
+  # account, in an iPhone simulator (1290 × 2796, the App Store's 6.7"/6.9" set) and an
+  # Android emulator, as artefacts <store>_<locale>_<NN-name>.png. The allskyhub hub starts
+  # it ("Screenshots erzeugen") and takes the pictures over ("Screenshots übernehmen").
+  # No signing. The review account's login comes from the secure group
+  # "bortle_screenshots" (SHOT_LOGIN, SHOT_PASSWORD), which holds nothing else: no store
+  # or signing key is in reach of this workflow.
+  store-screenshots:
+    name: Store screenshots
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      <<: *flutter
+      xcode: latest
+      groups: [bortle_screenshots]
+    scripts:
+      - *get
+      - name: iPhone screenshots
+        script: |
+          # An iPhone with the App Store's 1290 × 2796 screen, the newest runtime first.
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          wanted = ["iPhone 17 Plus", "iPhone 16 Plus", "iPhone 15 Pro Max", "iPhone 15 Plus"]
+          devices = json.load(sys.stdin)["devices"]
+          for name in wanted:
+              for runtime in sorted(devices, reverse=True):
+                  for d in devices[runtime]:
+                      if d["name"] == name:
+                          print(d["udid"]); sys.exit()
+          sys.exit("no iPhone with a 1290 x 2796 screen")')
+          xcrun simctl boot "$UDID"
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged \
+            --batteryLevel 100 --wifiBars 3 --cellularBars 4
+          flutter drive --driver=test_driver/screenshots.dart \
+            --target=integration_test/store_screenshots_test.dart -d "$UDID" \
+            --dart-define=SHOT_STORE=appstore \
+            --dart-define=SHOT_LOGIN="$SHOT_LOGIN" --dart-define=SHOT_PASSWORD="$SHOT_PASSWORD"
+      - name: Android screenshots
+        script: |
+          emulator -avd emulator -no-window -no-audio -no-boot-anim > /dev/null 2>&1 &
+          adb wait-for-device
+          until [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; do sleep 2; done
+          adb shell settings put global sysui_demo_allowed 1
+          adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0941
+          flutter drive --driver=test_driver/screenshots.dart \
+            --target=integration_test/store_screenshots_test.dart -d emulator-5554 \
+            --dart-define=SHOT_STORE=play \
+            --dart-define=SHOT_LOGIN="$SHOT_LOGIN" --dart-define=SHOT_PASSWORD="$SHOT_PASSWORD"
+    artifacts:
+      - build/screenshots/*.png
