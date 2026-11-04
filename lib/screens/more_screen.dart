@@ -57,6 +57,57 @@ class _MoreScreenState extends State<MoreScreen> {
     _reload();
   }
 
+  Future<void> _deleteAccount() async {
+    final password = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr('Konto löschen?', 'Delete account?')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tr(
+                'Löscht dein Konto und alles, was Bortle dafür speichert: Uploads, Läufe und Bilder, Verbindungen, Schlüssel, angemeldete Geräte und Bewertungen. Das lässt sich nicht rückgängig machen.',
+                'Deletes your account and everything Bortle keeps for it: uploads, runs and images, connections, keys, signed-in devices and ratings. This cannot be undone.',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              key: const Key('delete-password'),
+              controller: password,
+              obscureText: true,
+              autofillHints: const [AutofillHints.password],
+              decoration: InputDecoration(labelText: tr('Passwort', 'Password')),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Abbrechen', 'Cancel'))),
+          TextButton(
+            key: const Key('delete-confirm'),
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+            child: Text(tr('Endgültig löschen', 'Delete for good')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || password.text.isEmpty) return;
+    try {
+      await widget.client.deleteAccount(password.text);
+    } on BortleError catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      return;
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(tr('Dein Konto ist gelöscht.', 'Your account is deleted.'))));
+    widget.onSignOut();
+  }
+
   @override
   Widget build(BuildContext context) {
     final tones = context.tones;
@@ -145,6 +196,16 @@ class _MoreScreenState extends State<MoreScreen> {
             icon: const Icon(Icons.logout),
             label: Text(me == null ? tr('Server wechseln', 'Change server') : tr('Abmelden', 'Sign out')),
           ),
+          if (me != null && !me.admin) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              key: const Key('delete-account'),
+              onPressed: _deleteAccount,
+              icon: const Icon(Icons.delete_forever_outlined),
+              label: Text(tr('Konto löschen', 'Delete account')),
+              style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+            ),
+          ],
           const SizedBox(height: 16),
           Text(
             tr(

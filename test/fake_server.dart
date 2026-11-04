@@ -31,10 +31,11 @@ class FakeServer {
   Map<String, Object?>? redevelopBody;
   Map<String, Object?>? nextcloudStart;
   bool pushDropped = false;
+  bool accountDeleted = false;
 
   static const token = 'bat_test-token';
 
-  bool _authed(http.Request r) => localMode || r.headers['authorization'] == 'Bearer $token';
+  bool _authed(http.Request r) => localMode || (!accountDeleted && r.headers['authorization'] == 'Bearer $token');
 
   late final client = MockClient((request) async {
     requests.add(request);
@@ -63,6 +64,12 @@ class FakeServer {
         return json({
           'user': {'name': 'ben', 'admin': admin},
         });
+      case ('POST', '/api/auth/delete-account'):
+        if ((jsonDecode(request.body) as Map)['password'] != 'right') {
+          return json({'error': 'Das Passwort stimmt nicht.'}, 403);
+        }
+        accountDeleted = true;
+        return json({'ok': true, 'removed': <String, int>{}});
       case ('PUT', '/api/app/push-token'):
         pushRegistration = jsonDecode(request.body) as Map<String, Object?>;
         return json({'ok': true});

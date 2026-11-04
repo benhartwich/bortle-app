@@ -119,4 +119,43 @@ void main() {
     Navigator.of(tester.element(find.text('Rechnet'))).pop();
     await tester.pumpAndSettle();
   });
+
+  testWidgets('an account deletes itself from Mehr, with its password', (tester) async {
+    final server = FakeServer(admin: false);
+    final store = MemorySessionStore()..session = const StoredSession('https://bortle.eu', FakeServer.token);
+    await tester.pumpWidget(app(server, store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mehr'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('delete-account')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('delete-account')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('delete-password')), 'wrong');
+    await tester.tap(find.byKey(const Key('delete-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.text('Das Passwort stimmt nicht.'), findsOneWidget);
+    expect(server.accountDeleted, isFalse);
+    expect(store.session, isNotNull);
+
+    await tester.tap(find.byKey(const Key('delete-account')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('delete-password')), 'right');
+    await tester.tap(find.byKey(const Key('delete-confirm')));
+    await tester.pumpAndSettle();
+    expect(server.accountDeleted, isTrue);
+    expect(store.session, isNull);
+    expect(find.byKey(const Key('sign-in')), findsOneWidget);
+  });
+
+  testWidgets('the operator is not offered to delete the account', (tester) async {
+    final server = FakeServer();
+    final store = MemorySessionStore()..session = const StoredSession('https://bortle.eu', FakeServer.token);
+    await tester.pumpWidget(app(server, store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mehr'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('delete-account')), findsNothing);
+  });
 }

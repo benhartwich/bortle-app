@@ -144,6 +144,11 @@ class BortleClient {
 
   Future<void> unregisterPush() async => _send('DELETE', '/api/app/push-token');
 
+  /// Delete the account and everything Bortle keeps for it, confirmed with its password
+  /// (the cockpit's Profile → Konto löschen). Afterwards this device's token is gone too.
+  Future<void> deleteAccount(String password) async =>
+      _send('POST', '/api/auth/delete-account', body: {'password': password});
+
   // --- Bortle through the cockpit proxy -----------------------------------------
 
   Future<NightState> night() async => NightState.fromJson(await _send('GET', '/api/bortle/night') as Map);

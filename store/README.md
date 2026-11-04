@@ -50,8 +50,9 @@ The API cannot fill these; they are answered once by hand.
   - not shared with third parties; no tracking; no advertising ID.
   - encrypted in transit: yes for bortle.eu (HTTPS). An own install on the home network
     may use plain HTTP, which the app warns about outside the home network.
-  - deletion: the user revokes a device under Profile; the account is deleted on request
-    to info@bortle.eu.
+  - deletion: the user revokes a device under Profile; the account deletes itself, with
+    all its data, in the app (More → Delete account) or on the web (Profile), or on
+    request to info@bortle.eu.
   - the FCM device token, for app functionality (push).
   - **approximate location** (since the tools without an account): used on the
     phone for twilight, the moon and altitudes. Only when the weather tab is opened is
@@ -61,8 +62,7 @@ The API cannot fill these; they are answered once by hand.
     Store privacy: "Coarse Location – App Functionality, not linked to the user, no
     tracking". The permission text is in ios/Runner/Info.plist
     (NSLocationWhenInUseUsageDescription); Android asks for ACCESS_COARSE_LOCATION only.
-- **Account deletion URL:** not required (the app does not create accounts), but
-  https://bortle.eu/privacy names how.
+- **Account deletion URL:** https://bortle.eu/delete-account (in-app deletion since 0.4.0).
 - **Category:** Photography (Play); Photo & Video, second Utilities (App Store). Contact
   info@bortle.eu, website and support URL https://bortle.eu.
 - **App Store age rating:** none of the content questions apply (no web browser, no chat,
