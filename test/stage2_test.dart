@@ -5,7 +5,7 @@ import 'package:bortle_app/api/bortle_client.dart';
 import 'package:bortle_app/api/session_store.dart';
 import 'package:bortle_app/main.dart';
 import 'package:bortle_app/screens/telescope_screen.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_server.dart';

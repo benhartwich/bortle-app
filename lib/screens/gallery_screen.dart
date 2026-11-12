@@ -1,6 +1,6 @@
 // "Galerie": the finished images, and the runs – computing ones first, with progress.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/bortle_client.dart';
 import '../api/models.dart';

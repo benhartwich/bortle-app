@@ -7,7 +7,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/bortle_client.dart';
 import '../api/models.dart';
@@ -70,9 +70,8 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
                     // four labels on a 360 pt phone: tighter than the default, never wrapping
                     style: SegmentedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
-                      textStyle: Theme.of(
-                        context,
-                      ).textTheme.labelLarge?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+                      textStyle: Theme.of(context).textTheme.labelLarge
+                          ?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                     segments: [
                       ButtonSegment(value: _View.overview, label: Text(tr('Übersicht', 'Overview'))),

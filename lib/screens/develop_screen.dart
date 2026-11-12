@@ -2,7 +2,7 @@
 // have a say, then a project from their Nextcloud. A ZIP upload stays in the browser –
 // a session is gigabytes, not something to push over a phone's data plan.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/bortle_client.dart';
 import '../api/models.dart';

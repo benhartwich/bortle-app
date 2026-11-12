@@ -9,8 +9,8 @@
 
 import 'dart:math' as math;
 
-import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
-import 'package:flutter/material.dart';
+import 'package:cupertino_ui/cupertino_ui.dart' show CupertinoPageTransitionsBuilder;
+import 'package:material_ui/material_ui.dart';
 
 /// The day palette (allskyhub's tokens.css).
 abstract final class Sky {

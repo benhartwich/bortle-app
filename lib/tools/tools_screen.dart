@@ -2,7 +2,7 @@
 // moon, how high an object climbs and when, the optics' arithmetic, and the weather.
 // Everything but the weather is computed on the phone; the site stays on it.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../astro.dart';
 import '../catalog.dart';

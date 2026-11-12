@@ -191,13 +191,11 @@ class BortleClient {
   Future<String> developFromNextcloud(String project, {required String tier, required String level}) async {
     final Map j;
     try {
-      j =
-          await _send(
-                'POST',
-                '/api/bortle/develop/from-nextcloud',
-                body: {'project': project, 'tier': tier, 'level': level},
-              )
-              as Map;
+      j = await _send(
+        'POST',
+        '/api/bortle/develop/from-nextcloud',
+        body: {'project': project, 'tier': tier, 'level': level},
+      ) as Map;
     } on BortleError catch (e) {
       if (e.status != 409) rethrow;
       throw BortleError(
@@ -244,13 +242,11 @@ class BortleClient {
     String? resumeFrom,
     String? recipe,
   }) async {
-    final j =
-        await _send(
-              'POST',
-              '/api/bortle/develop/runs/${Uri.encodeComponent(name)}/redevelop',
-              body: {'recipe': recipe, 'overrides': overrides, 'resume_from': resumeFrom},
-            )
-            as Map;
+    final j = await _send(
+      'POST',
+      '/api/bortle/develop/runs/${Uri.encodeComponent(name)}/redevelop',
+      body: {'recipe': recipe, 'overrides': overrides, 'resume_from': resumeFrom},
+    ) as Map;
     return '${j['run']}';
   }
 
@@ -313,23 +309,21 @@ class BortleClient {
     required String developLevel,
     bool start = false,
     String? filter,
-  }) async =>
-      await _send(
-            'POST',
-            '/api/bortle/plan/nina',
-            body: {
-              'object': plan.object,
-              'ra_deg': plan.raDeg,
-              'dec_deg': plan.decDeg,
-              'exposure_s': exposureS,
-              'count': count,
-              'window_end': plan.windowEnd?.toIso8601String(),
-              'develop_level': developLevel,
-              'start': start,
-              'filter_name': ?filter,
-            },
-          )
-          as Map;
+  }) async => await _send(
+    'POST',
+    '/api/bortle/plan/nina',
+    body: {
+      'object': plan.object,
+      'ra_deg': plan.raDeg,
+      'dec_deg': plan.decDeg,
+      'exposure_s': exposureS,
+      'count': count,
+      'window_end': plan.windowEnd?.toIso8601String(),
+      'develop_level': developLevel,
+      'start': start,
+      'filter_name': ?filter,
+    },
+  ) as Map;
 
   // --- the telescope (stage 2) ------------------------------------------------------
 
