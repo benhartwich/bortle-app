@@ -235,6 +235,8 @@ class FakeServer {
         !recorded) {
       return json({'detail': 'Das Teleskop dieser Instanz bedient nur der Betreiber.'}, 403);
     }
+    final rig = _rig(request);
+    if (rig != null) return rig;
     if (!hasSite && (path == '/api/bortle/plan' || path == '/api/bortle/plan/recommend')) {
       return json({'detail': 'Kein Standort: Breite/Länge im Equipment-Profil eintragen'}, 400);
     }
@@ -545,7 +547,7 @@ class FakeServer {
     'at': 1793182074.3,
     'devices': {
       for (final d in ['camera', 'mount', 'focuser', 'filterwheel', 'guider'])
-        d: {'connected': true, 'reachable': true, 'error': null, 'age_s': 1.0, 'stale': false},
+        d: {'connected': true, 'reachable': true, 'error': null, 'age_s': 1.0, 'stale': false, ...?rigFields[d]},
       'rotator': {'connected': false, 'reachable': true, 'error': null, 'age_s': 1.0, 'stale': false},
     },
     'guiding': {
@@ -580,4 +582,140 @@ class FakeServer {
       'progress': {'lights': 38, 'usable': 35, 'rejected': 3, 'usable_minutes': 70.0},
     },
   };
+  // --- the rig's control surface (Telescope → Control) ------------------------------
+
+  /// Refusals by control action, answered 409 with the server's own words.
+  final refusals = <String, String>{};
+  final nudges = <Map<String, Object?>>[];
+  int tppaPolls = 0;
+  bool tppaAvailable = true;
+  bool tppaRunning = false;
+
+  /// NINA's own fields per device, as /nina/live passes them through.
+  static final rigFields = <String, Map<String, Object?>>{
+    'camera': {
+      'Temperature': -9.8,
+      'TargetTemp': -10.0,
+      'CoolerOn': true,
+      'CoolerPower': 41.0,
+      'Gain': 100,
+      'GainMin': 0,
+      'GainMax': 10000,
+      'IsExposing': false,
+    },
+    'mount': {'AtPark': false, 'Slewing': false, 'TrackingEnabled': true, 'Altitude': 61.2, 'TimeToMeridianFlip': 1.5},
+    'focuser': {'Position': 8150, 'IsMoving': false, 'Temperature': 3.1},
+  };
+
+  http.Response? _rig(http.Request request) {
+    http.Response json(Object body, [int status = 200]) =>
+        http.Response(jsonEncode(body), status, headers: {'content-type': 'application/json'});
+    switch ((request.method, request.url.path)) {
+      case ('GET', '/api/bortle/nina/devices'):
+        return json({
+          'devices': [
+            {'key': 'camera', 'label': 'Kamera', 'connected': true, 'driver_name': 'ATR2600C (k_0-12b7)'},
+            {'key': 'mount', 'label': 'Montierung', 'connected': true, 'driver_name': 'EQMOD'},
+            {'key': 'focuser', 'label': 'Fokussierer', 'connected': false, 'driver_name': 'Lacerta MFOC'},
+          ],
+          'profile': {'id': 'p', 'name': 'Epsilon 160'},
+        });
+      case ('GET', '/api/bortle/nina/filters'):
+        return json({
+          'connected': true,
+          'moving': false,
+          'current': {'id': 2, 'name': 'Optolong L Pro'},
+          'filters': [
+            {'id': 0, 'name': 'Optlong UV IR Cut'},
+            {'id': 2, 'name': 'Optolong L Pro'},
+            {'id': 3, 'name': ''},
+            {'id': 4, 'name': 'Antlia H Alpha & OIII'},
+          ],
+        });
+      case ('GET', '/api/bortle/nina/cooling'):
+        return json({
+          'setpoint_c': -15,
+          'reason': 'darks on disk at -15 °C',
+          'warnings': ['ambient temperature unknown'],
+        });
+      case ('GET', '/api/bortle/nina/preflight'):
+        return json({
+          'ok': false,
+          'summary': '1 blocking, 1 to look at',
+          'checks': [
+            {'key': 'device.camera', 'title': 'Camera', 'status': 'pass', 'detail': 'connected'},
+            {'key': 'device.focuser', 'title': 'Focuser', 'status': 'block', 'detail': 'not connected'},
+            {'key': 'settle', 'title': 'Settle time', 'status': 'warn', 'detail': '10 s, solve needs 20 s'},
+          ],
+        });
+      case ('GET', '/api/bortle/nina/autofocus/live'):
+        return json({
+          'running': false,
+          'points': [],
+          'expected_points': 9,
+          'last': {
+            'points': [
+              {'position': 8040, 'hfr': 6.0},
+              {'position': 8100, 'hfr': 4.49},
+              {'position': 8160, 'hfr': 4.55},
+              {'position': 8220, 'hfr': 4.74},
+            ],
+            'calculated_position': 8150,
+            'calculated_hfr': 4.588,
+            'r_squared': 0.9962,
+            'trustworthy': true,
+          },
+        });
+      case ('GET', '/api/bortle/nina/tppa'):
+        tppaPolls++;
+        if (!tppaAvailable) {
+          return json({
+            'available': false,
+            'running': false,
+            'paused': false,
+            'note': 'Das Plugin ist in NINA nicht geladen.',
+          });
+        }
+        return json({
+          'available': true,
+          'connected': tppaRunning,
+          'running': tppaRunning,
+          'paused': false,
+          'error_arcmin': tppaRunning ? 3.42 : null,
+          'last': tppaRunning
+              ? {
+                  'azimuth_arcmin': -2.1,
+                  'altitude_arcmin': 2.7,
+                  'total_arcmin': 3.42,
+                  'status': 'Solving',
+                  'progress': 0.66,
+                }
+              : null,
+        });
+      case ('GET', '/api/bortle/nina/capture'):
+        return http.Response.bytes(_png, 200, headers: {'content-type': 'image/png'});
+      case ('POST', '/api/bortle/nina/nudge'):
+        nudges.add((jsonDecode(request.body) as Map).cast<String, Object?>());
+        return json({'step': {}, 'result': 'ok'});
+      case ('POST', '/api/bortle/nina/control'):
+        final body = (jsonDecode(request.body) as Map).cast<String, Object?>();
+        final refusal = refusals[body['action']];
+        if (refusal != null) {
+          controls.add(body);
+          return json({'detail': refusal}, 409);
+        }
+        if (body['action'] == 'tppa-start') tppaRunning = true;
+        if (body['action'] == 'tppa-stop') tppaRunning = false;
+        if (body['action'] == 'capture') {
+          controls.add(body);
+          return json({
+            'action': 'capture',
+            'duration_s': body['duration'],
+            'result': '5s exposure — a look, not a measurement',
+          });
+        }
+        return null; // the general case below records it
+    }
+    return null;
+  }
 }

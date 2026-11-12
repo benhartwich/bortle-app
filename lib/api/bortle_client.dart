@@ -15,6 +15,9 @@ import '../l10n.dart';
 import 'models.dart';
 import 'recipes.dart';
 
+// The rig's control surface (Telescope → Control), kept in its own file.
+part 'rig_calls.dart';
+
 const defaultServerUrl = 'https://bortle.eu';
 
 /// The lowest /api/app/info `api` level this app can work with.
