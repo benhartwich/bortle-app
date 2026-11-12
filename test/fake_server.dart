@@ -33,6 +33,130 @@ class FakeServer {
 
   final bool localMode;
 
+  // --- Plan tab: recommendations per night and the catalogue search ---------------------
+
+  /// Tonight's forecast covers every target (the night of 2026-11-12, 22:16).
+  bool cloudedTonight = false;
+
+  /// The `date` each recommendation request asked for (null: tonight).
+  final recommendDates = <String?>[];
+
+  Map<String, Object?> _recommendations(String? date) {
+    recommendDates.add(date);
+    final clouded = date == null && cloudedTonight;
+    Map<String, Object?> target(
+      String name, {
+      required double score,
+      required double hours,
+      required String from,
+      required String to,
+      required double maxAlt,
+      required double meanAlt,
+      required double airmass,
+      required String verdict,
+      String filter = 'L-eXtreme',
+      int exposure = 300,
+      bool favorite = false,
+      double already = 0,
+      double ra = 314.75,
+      double dec = 44.33,
+    }) => {
+      'name': name,
+      'ids': [name],
+      'type': 'emission_nebula',
+      'ra_deg': ra,
+      'dec_deg': dec,
+      'score': clouded ? score / 10 : score,
+      'visible_hours': clouded ? 0.0 : hours,
+      'max_altitude_deg': maxAlt,
+      'mean_altitude_deg': meanAlt,
+      'airmass': airmass,
+      'window_start': clouded ? null : from,
+      'window_end': clouded ? null : to,
+      'mean_cloud': clouded ? null : 0.05,
+      'fov_fill': 0.4,
+      'fov_verdict': verdict,
+      'recommended_filter': filter,
+      'recommended_exposure_s': exposure,
+      'favorite': favorite,
+      'already_hours': already,
+      'status': already > 0 ? 'started' : 'new',
+      'blocked_by': clouded ? 'clouds' : null,
+      'dark_hours_above_horizon': hours,
+      'reasons': ['culminates at ${maxAlt.round()}°'],
+    };
+    return {
+      'night': {
+        'start': '2026-11-14T17:20:00+00:00',
+        'end': '2026-11-15T04:20:00+00:00',
+        'hours': 11.0,
+        'clouded_out': clouded,
+      },
+      'fov_arcmin': {'width': 100.4, 'height': 67.1},
+      'clouds_available': true,
+      'recommendations': [
+        target(
+          'North America Nebula',
+          score: 81.4,
+          hours: 5.2,
+          from: '2026-11-14T17:20:00+00:00',
+          to: '2026-11-14T22:30:00+00:00',
+          maxAlt: 82,
+          meanAlt: 61,
+          airmass: 1.14,
+          verdict: 'larger than the frame — mosaic',
+          favorite: true,
+          already: 2.5,
+        ),
+        target(
+          'Pacman Nebula',
+          score: 94.6,
+          hours: 11.0,
+          from: '2026-11-14T17:20:00+00:00',
+          to: '2026-11-15T04:20:00+00:00',
+          maxAlt: 81,
+          meanAlt: 70,
+          airmass: 1.07,
+          verdict: 'fits well',
+          filter: 'Antlia H Alpha & OIII',
+          exposure: 180,
+          ra: 13.2,
+          dec: 56.6,
+        ),
+      ],
+    };
+  }
+
+  Map<String, Object?> _search(String q) => {
+    'query': q,
+    'results': [
+      if ('ngc 7000 north america nebula'.contains(q.toLowerCase().trim()))
+        {
+          'id': 'NGC7000',
+          'plan_name': 'NGC 7000',
+          'name': 'North America Nebula',
+          'aliases': ['Nordamerikanebel', 'C 20'],
+          'type': 'HII region',
+          'catalog': 'NGC',
+          'ra_deg': 314.75,
+          'dec_deg': 44.33,
+          'size_arcmin': 120.0,
+        },
+      if ('heart nebula herznebel ic 1805'.contains(q.toLowerCase().trim()))
+        {
+          'id': 'IC1805',
+          'plan_name': 'IC 1805',
+          'name': 'Heart Nebula',
+          'aliases': ['Herznebel', 'Sh2-190'],
+          'type': 'HII region',
+          'catalog': 'IC',
+          'ra_deg': 38.2,
+          'dec_deg': 61.45,
+          'size_arcmin': 150.0,
+        },
+    ],
+  };
+
   /// The operator; anyone else gets the cockpit's 403 on the rig.
   final bool admin;
 
@@ -287,20 +411,9 @@ class FakeServer {
       case ('GET', '/api/bortle/plan'):
         return http.Response(fixture('plan_ngc7000.json'), 200, headers: {'content-type': 'application/json'});
       case ('GET', '/api/bortle/plan/recommend'):
-        return json({
-          'recommendations': [
-            {
-              'name': 'North America Nebula',
-              'score': 8.1,
-              'visible_hours': 5.2,
-              'recommended_filter': 'L-eXtreme',
-              'recommended_exposure_s': 300,
-              'favorite': true,
-              'already_hours': 2.5,
-              'reasons': ['culminates at 82°'],
-            },
-          ],
-        });
+        return json(_recommendations(request.url.queryParameters['date']));
+      case ('GET', '/api/bortle/plan/search'):
+        return json(_search(request.url.queryParameters['q'] ?? ''));
       case ('GET', '/api/bortle/develop/level'):
         return json({'level': 'guarded', 'step_holds': false, 'stored': true});
       case ('POST', '/api/bortle/plan/nina'):

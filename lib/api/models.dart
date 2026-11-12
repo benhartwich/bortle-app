@@ -592,6 +592,18 @@ class Recommendation {
     this.exposureS,
     this.favorite = false,
     this.alreadyHours = 0,
+    this.raDeg,
+    this.decDeg,
+    this.windowStart,
+    this.windowEnd,
+    this.maxAltitude,
+    this.meanAltitude,
+    this.airmass,
+    this.fovVerdict,
+    this.fovFill,
+    this.meanCloud,
+    this.blockedBy,
+    this.darkHoursAboveHorizon = 0,
   });
 
   factory Recommendation.fromJson(Map j) => Recommendation(
@@ -604,7 +616,42 @@ class Recommendation {
     exposureS: (j['recommended_exposure_s'] as num?)?.toDouble(),
     favorite: j['favorite'] == true,
     alreadyHours: (j['already_hours'] as num?)?.toDouble() ?? 0,
+    raDeg: _dbl(j['ra_deg']),
+    decDeg: _dbl(j['dec_deg']),
+    windowStart: _date(j['window_start']),
+    windowEnd: _date(j['window_end']),
+    maxAltitude: _dbl(j['max_altitude_deg']),
+    meanAltitude: _dbl(j['mean_altitude_deg']),
+    airmass: _dbl(j['airmass']),
+    fovVerdict: _str(j['fov_verdict']),
+    fovFill: _dbl(j['fov_fill']),
+    meanCloud: _dbl(j['mean_cloud']),
+    blockedBy: _str(j['blocked_by']),
+    darkHoursAboveHorizon: _dbl(j['dark_hours_above_horizon']) ?? 0,
   );
+
+  final double? raDeg;
+  final double? decDeg;
+
+  /// The longest stretch tonight that is dark, above the horizon and not clouded out.
+  final DateTime? windowStart;
+  final DateTime? windowEnd;
+  final double? maxAltitude;
+
+  /// Mean altitude through the window, and its airmass.
+  final double? meanAltitude;
+  final double? airmass;
+
+  /// "fits well", "fills the frame", "small in frame", "larger than the frame — mosaic".
+  final String? fovVerdict;
+  final double? fovFill;
+  final double? meanCloud;
+
+  /// Why there is no window: "clouds" or "horizon"; null when there is one.
+  final String? blockedBy;
+
+  /// What a clear sky would give: dark and above the horizon, clouds ignored.
+  final double darkHoursAboveHorizon;
 
   final String name;
   final double score;
@@ -690,4 +737,75 @@ class ObjectPreview {
   final double imageWidthDeg;
   final double imageHeightDeg;
   final String? credit;
+}
+
+// --- Plan tab: a night's recommendations and the catalogue search ---------------------------
+
+/// GET /plan/recommend: the ranked targets of one night and what holds for all of them.
+class RecommendedNight {
+  const RecommendedNight({
+    required this.targets,
+    this.nightStart,
+    this.nightEnd,
+    this.darkHours = 0,
+    this.cloudedOut = false,
+    this.fovArcmin,
+  });
+
+  factory RecommendedNight.fromJson(Map j) {
+    final night = (j['night'] as Map?) ?? const {};
+    final fov = j['fov_arcmin'];
+    return RecommendedNight(
+      targets: [for (final r in (j['recommendations'] as List? ?? const [])) Recommendation.fromJson(r as Map)],
+      nightStart: _date(night['start']),
+      nightEnd: _date(night['end']),
+      darkHours: _dbl(night['hours']) ?? 0,
+      cloudedOut: night['clouded_out'] == true,
+      fovArcmin: fov is Map && fov['width'] is num && fov['height'] is num
+          ? ((fov['width'] as num).toDouble(), (fov['height'] as num).toDouble())
+          : null,
+    );
+  }
+
+  final List<Recommendation> targets;
+  final DateTime? nightStart;
+  final DateTime? nightEnd;
+  final double darkHours;
+
+  /// The forecast covers (nearly) every target a clear sky would have given.
+  final bool cloudedOut;
+
+  /// The rig's field, width × height in arcminutes; null without optics in the profile.
+  final (double, double)? fovArcmin;
+}
+
+/// One row of GET /plan/search: the offline catalogue of ~20 000 objects.
+class SearchHit {
+  const SearchHit({
+    required this.name,
+    required this.planName,
+    this.aliases = const [],
+    this.type,
+    this.catalog,
+    this.sizeArcmin,
+  });
+
+  factory SearchHit.fromJson(Map j) => SearchHit(
+    name: '${j['name']}',
+    planName: _str(j['plan_name']) ?? '${j['name']}',
+    aliases: [for (final a in (j['aliases'] as List? ?? const [])) '$a'],
+    type: _str(j['type']),
+    catalog: _str(j['catalog']),
+    sizeArcmin: _dbl(j['size_arcmin']),
+  );
+
+  /// How the catalogue names it, e.g. "Heart Nebula".
+  final String name;
+
+  /// The designation to plan with ("IC 1805"): what Sesame and NINA read.
+  final String planName;
+  final List<String> aliases;
+  final String? type;
+  final String? catalog;
+  final double? sizeArcmin;
 }

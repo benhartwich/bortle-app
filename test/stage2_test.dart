@@ -36,12 +36,13 @@ void main() {
     await openTab(tester, 'Planen');
 
     await tester.enterText(find.byKey(const Key('object')), 'NGC 7');
+    await tester.pump(const Duration(milliseconds: 300)); // the search waits for typing to pause
     await tester.pumpAndSettle();
-    await tester.tap(find.text('NGC7000').last);
+    await tester.tap(find.byKey(const Key('hit-NGC 7000')));
     await tester.pumpAndSettle();
 
     // the real planner answer: no usable window tonight, and it says why
-    expect(find.text('NGC 7000'), findsOneWidget);
+    expect(find.text('NGC 7000'), findsNWidgets(2)); // the search field, and the plan's title
     expect(find.textContaining('Kein brauchbares Fenster'), findsOneWidget);
     expect(find.text('Höhe heute Nacht'), findsOneWidget);
 
@@ -68,8 +69,10 @@ void main() {
     await tester.pumpAndSettle();
     await openTab(tester, 'Planen');
 
-    expect(find.text('Empfehlungen für heute Nacht'), findsOneWidget);
-    expect(find.textContaining('5,2 h dunkel und hoch genug'), findsOneWidget);
+    expect(find.text('Empfehlungen'), findsOneWidget);
+    expect(find.byKey(const Key('rec-window-North America Nebula')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('rec-North America Nebula')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('rec-North America Nebula')));
     await tester.pumpAndSettle();
 
@@ -180,8 +183,9 @@ void main() {
     expect(find.byKey(const Key('no-site')), findsOneWidget);
 
     await tester.enterText(find.byKey(const Key('object')), 'NGC 7');
+    await tester.pump(const Duration(milliseconds: 300)); // the search waits for typing to pause
     await tester.pumpAndSettle();
-    await tester.tap(find.text('NGC7000').last);
+    await tester.tap(find.byKey(const Key('hit-NGC 7000')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('object-position')), findsOneWidget);
     expect(find.textContaining('RA 20h 59m'), findsOneWidget);
