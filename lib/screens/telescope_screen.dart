@@ -1,5 +1,5 @@
 // "Teleskop": the night as NINA runs it – overview with the latest frame, every frame of
-// the night, the curves over the night. Controlling the devices is stage 3.
+// the night, the curves over the night, and the devices themselves (lib/rig/).
 //
 // Only the operator: the instance's NINA is theirs (the cockpit answers 403 to anyone
 // else). Polls while the tab is on screen, never in the background.
@@ -14,6 +14,7 @@ import '../api/models.dart';
 import '../charts.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../rig/rig_control.dart';
 import '../widgets.dart';
 
 class TelescopeScreen extends StatefulWidget {
@@ -126,19 +127,7 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
         ),
       ),
     ),
-    _View.control => Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Text(
-          tr(
-            'Montierung, Kamera, Fokus, Guiding und Filter steuern kommt in Stufe 3 – erst wenn die Steuerung an echter Hardware bewiesen ist.',
-            'Controlling mount, camera, focus, guiding and filters arrives in stage 3 – once control is proven on real hardware.',
-          ),
-          textAlign: TextAlign.center,
-          style: TextStyle(color: tones.muted),
-        ),
-      ),
-    ),
+    _View.control => RigControl(client: widget.client, active: widget.active),
   };
 }
 
