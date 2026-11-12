@@ -26,8 +26,9 @@ Future<void> searchNgc7000(WidgetTester tester) async {
   await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Planen')));
   await tester.pumpAndSettle();
   await tester.enterText(find.byKey(const Key('object')), 'NGC 7');
+  await tester.pump(const Duration(milliseconds: 300)); // the search waits for typing to pause
   await tester.pumpAndSettle();
-  await tester.tap(find.text('NGC7000').last);
+  await tester.tap(find.byKey(const Key('hit-NGC 7000')));
   await tester.pumpAndSettle();
 }
 
@@ -45,7 +46,10 @@ void main() {
     // no solved frame of it yet: the frame is level, and it says so
     expect(find.textContaining('Drehwinkel noch nicht gemessen'), findsOneWidget);
     // the picture is the one the preview pointed at, fetched with the device's token
-    final image = server.requests.where((r) => r.url.path == '/api/bortle/plan/preview/image').single;
+    // (the recommendation cards fetch their small 240 px thumbnails through the same route)
+    final image = server.requests
+        .where((r) => r.url.path == '/api/bortle/plan/preview/image' && r.url.queryParameters['width_px'] != '240')
+        .single;
     expect(image.url.queryParameters['width_deg'], '2.6773');
     expect(image.headers['authorization'], 'Bearer ${FakeServer.token}');
   });

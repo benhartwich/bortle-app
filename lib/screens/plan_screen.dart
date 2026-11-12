@@ -9,6 +9,7 @@ import '../charts.dart';
 import '../design.dart';
 import '../l10n.dart';
 import '../object_preview.dart';
+import '../plan/recommendation_card.dart';
 import '../tools/site_picker.dart';
 import '../tools/tools_store.dart';
 import '../widgets.dart';
@@ -36,16 +37,57 @@ class _PlanScreenState extends State<PlanScreen> {
   final _count = TextEditingController(text: '60');
   String _level = 'auto';
   String? _filter;
-  late Future<List<Recommendation>?> _recommended = _recommend();
+
+  /// Which night the recommendations are for: 0 tonight, 1 tomorrow, 2 the day after.
+  int _night = 0;
+  late Future<RecommendedNight?> _recommended = _recommend();
   bool _start = false;
   bool _busy = false;
   bool _savingSite = false;
 
-  /// Null: the profile has no site, so there is nothing to rank by.
-  Future<List<Recommendation>?> _recommend() => widget.client.recommend().then<List<Recommendation>?>(
-    (list) => list,
-    onError: (Object e) => BortleClient.isNoSite(e) ? null : const <Recommendation>[],
-  );
+  /// The newest search wins; an older answer arriving late is dropped.
+  int _searchSeq = 0;
+  Iterable<SearchHit> _lastHits = const [];
+
+  /// Null: the profile has no site, so there is nothing to rank by. Tonight goes without a
+  /// date (what is left of it); later nights by the phone's local date, as the cockpit does.
+  Future<RecommendedNight?> _recommend() {
+    final date = _night == 0 ? null : DateTime.now().add(Duration(days: _night));
+    return widget.client
+        .recommendNight(date: date)
+        .then<RecommendedNight?>(
+          (night) => night,
+          onError: (Object e) => BortleClient.isNoSite(e) ? null : const RecommendedNight(targets: []),
+        );
+  }
+
+  void _showNight(int night) => setState(() {
+    _night = night;
+    _recommended = _recommend();
+  });
+
+  /// As you type, debounced: the catalogue search, or the older suggestions when the
+  /// server does not have it yet.
+  Future<Iterable<SearchHit>> _search(String text) async {
+    final seq = ++_searchSeq;
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (seq != _searchSeq) return _lastHits;
+    Iterable<SearchHit> hits;
+    try {
+      hits = await widget.client.search(text);
+    } on Object {
+      try {
+        hits = [
+          for (final s in await widget.client.suggest(text))
+            SearchHit(name: s.common ?? s.name, planName: s.name, type: s.type),
+        ];
+      } on Object {
+        hits = const [];
+      }
+    }
+    if (seq == _searchSeq) _lastHits = hits;
+    return hits;
+  }
 
   bool get _operator => widget.me == null || widget.me!.admin;
 
@@ -235,16 +277,91 @@ class _PlanScreenState extends State<PlanScreen> {
     }
   }
 
+  static List<String> get _nightLabels => [
+    tr('Heute Nacht', 'Tonight'),
+    tr('Morgen', 'Tomorrow'),
+    tr('Übermorgen', 'Day after'),
+  ];
+
+  Widget _nightSelector() => SegmentedButton<int>(
+    key: const Key('night-selector'),
+    showSelectedIcon: false,
+    segments: [
+      for (final (i, label) in _nightLabels.indexed)
+        ButtonSegment(
+          value: i,
+          label: Text(label, key: Key('night-$i'), maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+    ],
+    selected: {_night},
+    onSelectionChanged: (s) => _showNight(s.first),
+  );
+
+  /// Nothing has a window: say whether the sky or the season is to blame, and where to look.
+  Widget _nothingUsable(RecommendedNight night) {
+    final tones = context.tones;
+    final clouds = night.cloudedOut || night.targets.any((r) => r.blockedBy == 'clouds');
+    final title = clouds
+        ? (_night == 0
+              ? tr('Rest der Nacht bewölkt', 'Rest of the night clouded out')
+              : tr('Diese Nacht bewölkt', 'This night clouded out'))
+        : tr('Kein Ziel hoch genug im Dunkeln', 'No target high enough while it is dark');
+    return Card(
+      key: const Key('nothing-usable'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(clouds ? Icons.cloud_outlined : Icons.landscape_outlined, color: tones.warn),
+                const SizedBox(width: 10),
+                Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              clouds
+                  ? tr(
+                      'Die Vorhersage deckt die Ziele zu, die ein klarer Himmel geben würde. Die Liste unten zeigt sie trotzdem.',
+                      'The forecast covers the targets a clear sky would give. The list below shows them anyway.',
+                    )
+                  : tr(
+                      'Kein empfohlenes Ziel steht in dieser Nacht im Dunkeln über deinem Horizont.',
+                      'No recommended target stands above your horizon in the dark this night.',
+                    ),
+              style: TextStyle(color: tones.muted),
+            ),
+            if (_night < 2) ...[
+              const SizedBox(height: 10),
+              FilledButton.tonal(
+                key: const Key('next-night'),
+                onPressed: () => _showNight(_night + 1),
+                child: Text(
+                  _night == 0
+                      ? tr('Morgen ansehen', 'Look at tomorrow')
+                      : tr('Übermorgen ansehen', 'Look at the day after'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(tr('Planen', 'Plan'))),
     body: ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Autocomplete<Suggestion>(
-          displayStringForOption: (s) => s.label,
-          optionsBuilder: (value) => widget.client.suggest(value.text).catchError((_) => const <Suggestion>[]),
-          onSelected: (s) => _pick(s.name),
+        Autocomplete<SearchHit>(
+          displayStringForOption: (s) => s.planName,
+          optionsBuilder: (value) => _search(value.text),
+          onSelected: (s) => _pick(s.planName),
+          optionsViewBuilder: (context, onSelected, options) => _SearchResults(options, onSelected),
           fieldViewBuilder: (context, controller, focus, submit) => TextField(
             key: const Key('object'),
             controller: controller,
@@ -271,49 +388,56 @@ class _PlanScreenState extends State<PlanScreen> {
               style: TextStyle(color: context.tones.muted),
             ),
           ),
-          SectionTitle(tr('Empfehlungen für heute Nacht', 'Recommended for tonight')),
-          FutureBuilder<List<Recommendation>?>(
+          SectionTitle(tr('Empfehlungen', 'Recommendations')),
+          _nightSelector(),
+          if (_night > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                tr(
+                  'Wolken aus der Vorhersage – je weiter voraus, desto unsicherer. Dunkelheit, Mond und Höhen stimmen genau.',
+                  'Clouds from the forecast – the further ahead, the less certain. Darkness, moon and altitudes are exact.',
+                ),
+                key: const Key('forecast-hint'),
+                style: TextStyle(color: context.tones.muted, fontSize: 12),
+              ),
+            ),
+          const SizedBox(height: 8),
+          FutureBuilder<RecommendedNight?>(
             future: _recommended,
             builder: (context, snap) {
               if (snap.connectionState != ConnectionState.done) return const LinearProgressIndicator();
-              final list = snap.data;
-              if (list == null) return _siteChoice();
-              if (list.isEmpty) {
+              final night = snap.data;
+              if (night == null) return _siteChoice();
+              if (night.targets.isEmpty) {
                 return Text(
-                  tr('Heute Nacht keine Empfehlungen.', 'No recommendations tonight.'),
+                  tr('Für diese Nacht keine Empfehlungen.', 'No recommendations for this night.'),
                   style: TextStyle(color: context.tones.muted),
                 );
               }
+              final usable = night.targets.where((r) => r.visibleHours > 0).toList();
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (final r in list)
-                    Card(
-                      child: ListTile(
-                        key: Key('rec-${r.name}'),
-                        leading: Icon(r.favorite ? Icons.star : Icons.auto_awesome_outlined),
-                        title: Text(r.name),
-                        subtitle: Text(
-                          [
-                            if (r.visibleHours > 0)
-                              tr(
-                                '${decimal(r.visibleHours, 1)} h dunkel und hoch genug',
-                                '${decimal(r.visibleHours, 1)} h dark and high enough',
-                              )
-                            else
-                              tr('heute kein dunkles Fenster', 'no dark window tonight'),
-                            if (r.filter != null)
-                              '${r.filter}${r.exposureS != null ? ' · ${r.exposureS!.round()} s' : ''}',
-                            if (r.alreadyHours > 0)
-                              tr(
-                                'schon ${decimal(r.alreadyHours, 1)} h im Kasten',
-                                '${decimal(r.alreadyHours, 1)} h already',
-                              ),
-                          ].join('\n'),
+                  if (night.nightStart != null && night.nightEnd != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        tr(
+                          'Astronomisch dunkel ${timeRange(night.nightStart, night.nightEnd)} · ${decimal(night.darkHours, 1)} h',
+                          'Astronomically dark ${timeRange(night.nightStart, night.nightEnd)} · ${decimal(night.darkHours, 1)} h',
                         ),
-                        isThreeLine: true,
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _pick(r.name, from: r),
+                        key: const Key('night-span'),
+                        style: TextStyle(color: context.tones.muted, fontSize: 13),
                       ),
+                    ),
+                  if (usable.isEmpty) _nothingUsable(night),
+                  for (final r in usable.isEmpty ? night.targets : usable)
+                    RecommendationCard(
+                      target: r,
+                      client: widget.client,
+                      fovArcmin: night.fovArcmin,
+                      onTap: () => _pick(r.name, from: r),
                     ),
                 ],
               );
@@ -537,6 +661,55 @@ class _PlanScreenState extends State<PlanScreen> {
           ),
         const SizedBox(height: 24),
       ],
+    );
+  }
+}
+
+/// The catalogue's answers under the search field: the name, how else it is called, what it
+/// is and how big.
+class _SearchResults extends StatelessWidget {
+  const _SearchResults(this.options, this.onSelected);
+
+  final Iterable<SearchHit> options;
+  final AutocompleteOnSelected<SearchHit> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final tones = context.tones;
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Material(
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
+        elevation: 4,
+        borderRadius: BorderRadius.circular(12),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 320, maxWidth: 560),
+          child: ListView(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            children: [
+              for (final hit in options)
+                ListTile(
+                  key: Key('hit-${hit.planName}'),
+                  dense: true,
+                  title: Text(hit.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(
+                    [
+                      if (hit.planName != hit.name) hit.planName,
+                      ...hit.aliases.where((a) => a != hit.name && a != hit.planName).take(2),
+                      ?hit.type,
+                      if (hit.sizeArcmin != null) '${hit.sizeArcmin!.round()}′',
+                    ].join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: tones.muted, fontSize: 12),
+                  ),
+                  onTap: () => onSelected(hit),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

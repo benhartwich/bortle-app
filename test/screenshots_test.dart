@@ -322,8 +322,9 @@ void main() {
 
         await tab('Planen', 'Plan');
         await tester.enterText(find.byKey(const Key('object')), 'NGC 70');
+        await tester.pump(const Duration(milliseconds: 300)); // the search waits for typing to pause
         await tester.pumpAndSettle();
-        await tester.tap(find.text('NGC7000 · ${tr('Nordamerikanebel', 'North America Nebula')}').last);
+        await tester.tap(find.byKey(const Key('hit-NGC7000')));
         await tester.pumpAndSettle();
         await shot('plan');
 

@@ -294,9 +294,22 @@ class BortleClient {
       NightPlan.fromJson(await _send('GET', '/api/bortle/plan', query: {'object': object}) as Map);
 
   /// Tonight's best targets for the account's site, horizon and rig.
-  Future<List<Recommendation>> recommend({int top = 10}) async {
-    final j = await _send('GET', '/api/bortle/plan/recommend', query: {'top_n': '$top'}) as Map;
-    return [for (final r in (j['recommendations'] as List? ?? const [])) Recommendation.fromJson(r as Map)];
+  Future<List<Recommendation>> recommend({int top = 10}) async => (await recommendNight(top: top)).targets;
+
+  /// One night's ranking: tonight (what is left of it) without [date], or the night that
+  /// starts on the evening of [date] (the site's local date, up to a week ahead).
+  Future<RecommendedNight> recommendNight({DateTime? date, int top = 10}) async {
+    String day(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final query = {'top_n': '$top', if (date != null) 'date': day(date)};
+    final j = await _send('GET', '/api/bortle/plan/recommend', query: query) as Map;
+    return RecommendedNight.fromJson(j);
+  }
+
+  /// The offline catalogue: names, aliases and designations of ~20 000 objects.
+  Future<List<SearchHit>> search(String q, {int limit = 8}) async {
+    if (q.trim().length < 2) return const [];
+    final j = await _send('GET', '/api/bortle/plan/search', query: {'q': q.trim(), 'limit': '$limit'}) as Map;
+    return [for (final r in (j['results'] as List? ?? const [])) SearchHit.fromJson(r as Map)];
   }
 
   /// The account's default develop level: stepwise | guarded | auto.
