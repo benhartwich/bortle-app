@@ -364,6 +364,26 @@ class BortleClient {
     }
     return response.bodyBytes;
   });
+
+  // --- object preview (Plan tab) ---------------------------------------------------------
+
+  /// What this account's rig would see of [object]: field, fill, framing angle, and the
+  /// path of a survey picture sized to show the field. No site needed.
+  Future<ObjectPreview> preview(String object) async =>
+      ObjectPreview.fromJson(await _send('GET', '/api/bortle/plan/preview', query: {'object': object}) as Map);
+
+  /// The survey picture [ObjectPreview.imagePath] points at, fetched once per client. The
+  /// server may first have to ask the survey service, so this waits longer than a read.
+  Future<Uint8List> previewImage(String path) => _images.putIfAbsent('preview:$path', () async {
+    final response = await _http
+        .get(Uri.parse('$baseUrl/api/bortle$path'), headers: authHeaders)
+        .timeout(const Duration(seconds: 60));
+    if (response.statusCode != 200) {
+      _images.remove('preview:$path');
+      throw BortleError(response.statusCode, 'HTTP ${response.statusCode}');
+    }
+    return response.bodyBytes;
+  });
 }
 
 /// "bortle.example.org" → "https://bortle.example.org"; no trailing slash.

@@ -8,6 +8,7 @@ import '../api/models.dart';
 import '../charts.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../object_preview.dart';
 import '../tools/site_picker.dart';
 import '../tools/tools_store.dart';
 import '../widgets.dart';
@@ -168,6 +169,10 @@ class _PlanScreenState extends State<PlanScreen> {
       ),
       const SizedBox(height: 12),
       _siteChoice(),
+      const SizedBox(height: 12),
+      // the framing needs no site, only the rig and the object; below the site, which is
+      // what this view asks for
+      ObjectPreviewCard(client: widget.client, object: object),
     ],
   );
 
@@ -350,6 +355,8 @@ class _PlanScreenState extends State<PlanScreen> {
       children: [
         const SizedBox(height: 16),
         Text(plan.object, style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 10),
+        ObjectPreviewCard(client: widget.client, object: plan.object),
         const SizedBox(height: 10),
         Card(
           child: Padding(
