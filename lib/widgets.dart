@@ -2,7 +2,7 @@
 
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'api/bortle_client.dart';
 import 'design.dart';

@@ -6,3 +6,8 @@ formatter:
 linter:
   rules:
     prefer_single_quotes: true
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**

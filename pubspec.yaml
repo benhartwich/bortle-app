@@ -5,14 +5,17 @@ publish_to: 'none'
 version: 0.4.0+8
 
 environment:
-  sdk: ^3.12.0
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  # Flutter's own texts (date picker, tooltips) in German and English (lib/l10n.dart).
-  flutter_localizations:
-    sdk: flutter
+  # Material and Cupertino moved out of the framework into packages (Flutter 3.47).
+  # material_ui also brings Flutter's own texts (date picker, tooltips) in German and
+  # English (GlobalMaterialLocalizations.delegates, lib/l10n.dart).
+  material_ui: ^1.11.0
+  cupertino_ui: ^1.1.6
   http: ^1.6.0
   # The server address and this device's token, in the Keychain / Keystore.
   flutter_secure_storage: ^11.2.0

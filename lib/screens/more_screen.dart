@@ -1,7 +1,7 @@
 // "Mehr": who and where you are signed in, the red light mode, this account's signed-in
 // devices, and signing out.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/bortle_client.dart';
 import '../api/models.dart';
@@ -102,9 +102,8 @@ class _MoreScreenState extends State<MoreScreen> {
       return;
     }
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(tr('Dein Konto ist gelöscht.', 'Your account is deleted.'))));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(tr('Dein Konto ist gelöscht.', 'Your account is deleted.'))));
     widget.onSignOut();
   }
 

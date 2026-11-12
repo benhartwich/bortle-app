@@ -2,7 +2,7 @@
 // coordinates. The tools keep it on the phone; the Plan tab keeps it in the account's
 // profile, where Bortle computes visibility from.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../l10n.dart';
 import 'tools_store.dart';
