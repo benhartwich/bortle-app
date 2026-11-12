@@ -4,7 +4,7 @@
 // explained sliders – changed values repeat the step and stay for the rest of this
 // develop. At the recipe hold each master's recipe can be changed.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/bortle_client.dart';
 import '../api/models.dart';

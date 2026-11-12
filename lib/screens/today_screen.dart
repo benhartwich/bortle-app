@@ -1,7 +1,7 @@
 // "Heute": the night's state, what waits for an answer, what is computing, the latest
 // finished images and the latest events. Fetched fresh on every open and pull.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/bortle_client.dart';
 import '../api/models.dart';

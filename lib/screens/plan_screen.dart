@@ -1,7 +1,7 @@
 // "Planen": an object, its altitude over the night at the account's site, moon and clouds,
 // then the sequence to NINA with the develop level for when the night ends.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/bortle_client.dart';
 import '../api/models.dart';

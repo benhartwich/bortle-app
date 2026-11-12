@@ -21,7 +21,7 @@ import 'package:bortle_app/api/bortle_client.dart';
 import 'package:bortle_app/api/session_store.dart';
 import 'package:bortle_app/l10n.dart';
 import 'package:bortle_app/main.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 

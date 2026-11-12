@@ -2,7 +2,7 @@
 // recipe's steps as explained sliders, starting from what this run used. Only the steps
 // from the earliest changed one on are computed again; everything before is reused.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../api/bortle_client.dart';
 import '../api/models.dart';
