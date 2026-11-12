@@ -8,7 +8,21 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 class FakeServer {
-  FakeServer({this.localMode = false, this.admin = true, this.ninaUp = true, this.demo = false, this.hasSite = true});
+  FakeServer({
+    this.localMode = false,
+    this.admin = true,
+    this.ninaUp = true,
+    this.demo = false,
+    this.hasSite = true,
+    this.hasOptics = true,
+    this.framingAngle,
+  });
+
+  /// Whether the account's profile has focal length and camera (the object preview's field).
+  final bool hasOptics;
+
+  /// The framing angle measured from solved frames, if any.
+  final double? framingAngle;
 
   /// The app-review account: the rig's reads answer from a recording.
   final bool demo;
@@ -239,6 +253,33 @@ class FakeServer {
           'epoch': 'J2000',
           'source': 'catalog',
         });
+      // object preview: shaped like services/orchestrator/app.py plan_preview
+      case ('GET', '/api/bortle/plan/preview'):
+        return json({
+          'object': 'NGC 7000',
+          'common': 'North America Nebula',
+          'ra_deg': 314.75,
+          'dec_deg': 44.33,
+          'epoch': 'J2000',
+          'focal_mm': hasOptics ? 800.0 : null,
+          'focal_ratio': hasOptics ? 5.0 : null,
+          'telescope': hasOptics ? 'Takahashi Epsilon 160ED' : null,
+          'camera': hasOptics ? 'ATR2600C' : null,
+          'fov_arcmin': hasOptics ? [100.4, 67.1] : null,
+          'size_arcmin': 120.0,
+          'fill': hasOptics ? 1.79 : null,
+          'verdict': hasOptics ? 'larger than the frame — mosaic' : 'unknown (optics incomplete)',
+          'position_angle_deg': framingAngle,
+          'image': {
+            'path': '/plan/preview/image?ra=314.75&dec=44.33&width_deg=2.6773&height_deg=1.7893&survey=dss2',
+            'width_deg': hasOptics ? 2.6773 : 6.0,
+            'height_deg': hasOptics ? 1.7893 : 6.0,
+            'survey': 'dss2',
+            'credit': 'DSS2 / SDSS via CDS hips2fits (NASA SkyView when CDS is away)',
+          },
+        });
+      case ('GET', '/api/bortle/plan/preview/image'):
+        return http.Response.bytes(_png, 200, headers: {'content-type': 'image/png'});
       case ('GET', '/api/bortle/plan/suggest'):
         return http.Response(fixture('suggest_ngc7.json'), 200, headers: {'content-type': 'application/json'});
       case ('GET', '/api/bortle/plan'):

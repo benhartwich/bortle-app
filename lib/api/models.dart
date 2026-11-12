@@ -620,3 +620,74 @@ class Recommendation {
   /// What is already integrated on it.
   final double alreadyHours;
 }
+
+// --- object preview (Plan tab): the survey picture framed by the account's rig -----------
+
+/// GET /plan/preview: what this account's rig would see of an object. The field and the
+/// verdict come from the equipment profile, measured the way the recommendations measure.
+class ObjectPreview {
+  const ObjectPreview({
+    required this.name,
+    this.common,
+    required this.raDeg,
+    required this.decDeg,
+    this.focalMm,
+    this.focalRatio,
+    this.fovArcmin,
+    this.sizeArcmin,
+    this.fill,
+    this.verdict,
+    this.positionAngleDeg,
+    required this.imagePath,
+    required this.imageWidthDeg,
+    required this.imageHeightDeg,
+    this.credit,
+  });
+
+  factory ObjectPreview.fromJson(Map j) {
+    final fov = j['fov_arcmin'];
+    final image = (j['image'] as Map?) ?? const {};
+    return ObjectPreview(
+      name: '${j['object']}',
+      common: _str(j['common']),
+      raDeg: (j['ra_deg'] as num).toDouble(),
+      decDeg: (j['dec_deg'] as num).toDouble(),
+      focalMm: _dbl(j['focal_mm']),
+      focalRatio: _dbl(j['focal_ratio']),
+      fovArcmin: fov is List && fov.length == 2 ? ((fov[0] as num).toDouble(), (fov[1] as num).toDouble()) : null,
+      sizeArcmin: _dbl(j['size_arcmin']),
+      fill: _dbl(j['fill']),
+      verdict: _str(j['verdict']),
+      positionAngleDeg: _dbl(j['position_angle_deg']),
+      imagePath: '${image['path']}',
+      imageWidthDeg: _dbl(image['width_deg']) ?? 1,
+      imageHeightDeg: _dbl(image['height_deg']) ?? 1,
+      credit: _str(image['credit']),
+    );
+  }
+
+  final String name;
+  final String? common;
+  final double raDeg;
+  final double decDeg;
+  final double? focalMm;
+  final double? focalRatio;
+
+  /// The camera's field (sensor width side, height side) in arcmin; null without optics.
+  final (double, double)? fovArcmin;
+  final double? sizeArcmin;
+  final double? fill;
+
+  /// The server's words: "fits well", "fills the frame", "small in frame",
+  /// "larger than the frame — mosaic", "unknown (optics incomplete)".
+  final String? verdict;
+
+  /// Measured from this account's own solved frames of it; null until one exists.
+  final double? positionAngleDeg;
+
+  /// Path below /api/bortle of the survey picture, north up, east left.
+  final String imagePath;
+  final double imageWidthDeg;
+  final double imageHeightDeg;
+  final String? credit;
+}
