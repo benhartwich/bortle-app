@@ -701,6 +701,15 @@ class FakeServer {
   final refusals = <String, String>{};
   final nudges = <Map<String, Object?>>[];
   int tppaPolls = 0;
+
+  // --- framing (lib/framing) -------------------------------------------------------
+
+  /// The mount reports AtPark in /nina/live.
+  bool mountParked = false;
+
+  /// The angle NINA's framing assistant reads back after "determine rotation".
+  double ninaRotation = 123.4;
+
   bool tppaAvailable = true;
 
   /// Devices the live snapshot reports as not connected.
@@ -728,6 +737,7 @@ class FakeServer {
         'IsMoving': false,
       };
     }
+    if (mountParked) devices['mount'] = {...(devices['mount'] as Map), 'AtPark': true};
     return {...liveSnapshot, 'devices': devices};
   }
 
@@ -844,6 +854,28 @@ class FakeServer {
                   'progress': 0.66,
                 }
               : null,
+        });
+      case ('GET', '/api/bortle/plan/framing'):
+        // services/planner/framing.py FramingAdvice.as_dict
+        return json({
+          'target': request.url.queryParameters['target'],
+          'known': framingAngle != null,
+          'position_angle_deg': framingAngle,
+          'measured_at': framingAngle != null ? '2026-10-28T21:14:00+00:00' : null,
+          'frames': framingAngle != null ? 12 : 0,
+          'note': framingAngle != null ? 'measured' : 'no solved frame for this target yet',
+          'warnings': [],
+          'measurements': [],
+        });
+      case ('GET', '/api/bortle/nina/framing'):
+        // nina_live.py framing_view
+        return json({
+          'source': 'SKYATLAS',
+          'ra_deg': 314.75,
+          'dec_deg': 44.33,
+          'rotation_deg': ninaRotation,
+          'fov_deg': 1.67,
+          'target_name': null,
         });
       case ('GET', '/api/bortle/nina/capture'):
         return http.Response.bytes(_png, 200, headers: {'content-type': 'image/png'});

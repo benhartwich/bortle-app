@@ -10,6 +10,7 @@ import '../api/bortle_client.dart';
 import '../api/models.dart';
 import '../charts.dart' show timeRange;
 import '../design.dart';
+import '../framing/framing_screen.dart';
 import '../l10n.dart';
 import '../object_preview.dart';
 
@@ -108,6 +109,17 @@ class RecommendationCard extends StatelessWidget {
                       color: tones.good,
                       key: Key('rec-collected-${r.name}'),
                     ),
+                  ActionChip(
+                    key: Key('rec-frame-${r.name}'),
+                    avatar: const Icon(Icons.crop_rotate, size: 16),
+                    label: Text(tr('Einrahmen', 'Frame')),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => FramingScreen(client: client, target: r.name, raDeg: r.raDeg, decDeg: r.decDeg),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

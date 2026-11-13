@@ -397,6 +397,17 @@ class BortleClient {
     }
     return response.bodyBytes;
   });
+
+  // --- framing (lib/framing) -------------------------------------------------------------
+
+  /// How [target] was actually framed, measured from this account's solved frames
+  /// (GET /plan/framing). `known:false` until the first solve: an unknown angle is not 0.
+  Future<Map> planFraming(String target) async =>
+      await _send('GET', '/api/bortle/plan/framing', query: {'target': target}) as Map;
+
+  /// Where NINA's framing assistant points right now, J2000 degrees, and its rotation
+  /// (GET /nina/framing) – what a "determine rotation" leaves behind.
+  Future<Map> ninaFraming() async => await _rigSend('GET', '/api/bortle/nina/framing') as Map;
 }
 
 /// "bortle.example.org" → "https://bortle.example.org"; no trailing slash.
