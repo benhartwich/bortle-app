@@ -1,4 +1,5 @@
 // "Galerie": the finished images, and the runs – computing ones first, with progress.
+// On a tablet on its side the run opens beside the list instead of over it.
 
 import 'package:material_ui/material_ui.dart';
 
@@ -6,6 +7,7 @@ import '../api/bortle_client.dart';
 import '../api/models.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../layout.dart';
 import '../widgets.dart';
 import 'run_screen.dart';
 
@@ -37,14 +39,38 @@ class _GalleryScreenState extends State<GalleryScreen> {
     });
   }
 
-  void _open(String run) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => RunScreen(client: widget.client, name: run),
-    ),
-  );
+  /// The run shown beside the list in two panes; the phone pushes it instead.
+  String? _chosen;
+
+  void _open(String run) {
+    if (context.twoPane) {
+      setState(() => _chosen = run);
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => RunScreen(client: widget.client, name: run),
+      ),
+    );
+  }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    if (!context.twoPane) return _list(context);
+    final chosen = _chosen;
+    return TwoPane(
+      list: _list(context),
+      listWidth: 420,
+      detail: chosen == null
+          ? NothingChosen(
+              icon: Icons.photo_library_outlined,
+              text: tr('Wähle links ein Bild oder einen Lauf.', 'Choose an image or a run on the left.'),
+            )
+          : RunScreen(key: ValueKey(chosen), client: widget.client, name: chosen),
+    );
+  }
+
+  Widget _list(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: Text(tr('Galerie', 'Gallery')),
       bottom: PreferredSize(
@@ -99,6 +125,12 @@ class _GalleryScreenState extends State<GalleryScreen> {
             onTap: () => _open(g.name),
             child: Card(
               clipBehavior: Clip.antiAlias,
+              shape: g.name == _chosen && context.twoPane
+                  ? RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    )
+                  : null,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -149,6 +181,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
         itemBuilder: (context, i) {
           final r = list[i];
           return ListTile(
+            selected: r.name == _chosen && context.twoPane,
             title: Text(r.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: r.running
                 ? Column(
