@@ -26,6 +26,9 @@ dependencies:
   # The site for the tools without an account (lib/tools): where the phone is, coarse,
   # used on the phone only; the weather asks with the place rounded to 0.1°.
   geolocator: ^14.1.2
+  # The sky map's "Handy-Ausrichtung" (lib/sky): accelerometer and magnetometer, read
+  # only while that mode is on (BSD-3-Clause).
+  sensors_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:

@@ -9,6 +9,8 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Bortle works out twilight, the moon and how high objects climb for where you are. The location stays on your phone; the weather is asked for a place rounded to about 10 km.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>The sky map can follow where you point your phone, from its compass and tilt. Nothing of it leaves the phone.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Bortle connects to your own Bortle install on your home network.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
