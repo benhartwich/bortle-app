@@ -355,7 +355,7 @@ void main() {
     await openControl(tester, server);
     await open(tester, 'mount');
     await mountTab(tester, 'slew');
-    expect(find.byKey(const Key('frame-target')), findsNothing); // nobody to frame it yet
+    expect(find.byKey(const Key('frame-target')), findsOneWidget); // the Telescope tab hands it to the framing
 
     await tester.enterText(find.byKey(const Key('slew-search')), 'NGC 7000');
     await tester.pump(const Duration(milliseconds: 300));

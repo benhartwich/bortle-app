@@ -15,6 +15,8 @@ import '../api/session_store.dart';
 import '../charts.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../nav/sky_and_framing.dart';
+import '../framing/framing_screen.dart';
 import '../rig/rig_control.dart';
 import '../widgets.dart';
 
@@ -60,6 +62,7 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
       appBar: AppBar(
         title: Text(tr('Teleskop', 'Telescope')),
         actions: [
+          if (views) skyMapButton(context, widget.client),
           IconButton(
             tooltip: tr('Rotlicht-Modus', 'Red light mode'),
             onPressed: widget.onRedLight,
@@ -132,7 +135,12 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
         ),
       ),
     ),
-    _View.control => RigControl(client: widget.client, active: widget.active, store: widget.store),
+    _View.control => RigControl(
+      client: widget.client,
+      active: widget.active,
+      store: widget.store,
+      onFrame: (name, ra, dec) => openFraming(context, widget.client, name, ra, dec),
+    ),
   };
 }
 

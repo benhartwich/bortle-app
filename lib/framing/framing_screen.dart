@@ -717,3 +717,26 @@ class _FramingScreenState extends State<FramingScreen> {
           child: child,
         );
 }
+
+/// Opens the framing for an object, from wherever one is picked (rig search,
+/// sky map). A typed position has no name the server can draw a picture for.
+void openFraming(BuildContext context, BortleClient client, String name, double raDeg, double decDeg) {
+  if (name.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          tr(
+            'Einrahmen geht für ein Objekt aus der Suche, nicht für getippte Koordinaten.',
+            'Framing works for an object from the search, not for typed coordinates.',
+          ),
+        ),
+      ),
+    );
+    return;
+  }
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => FramingScreen(client: client, target: name, raDeg: raDeg, decDeg: decDeg),
+    ),
+  );
+}

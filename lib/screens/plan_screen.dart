@@ -8,6 +8,7 @@ import '../api/models.dart';
 import '../charts.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../nav/sky_and_framing.dart';
 import '../object_preview.dart';
 import '../plan/recommendation_card.dart';
 import '../tools/site_picker.dart';
@@ -353,7 +354,7 @@ class _PlanScreenState extends State<PlanScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(tr('Planen', 'Plan'))),
+    appBar: AppBar(title: Text(tr('Planen', 'Plan')), actions: [skyMapButton(context, widget.client)]),
     body: ListView(
       padding: const EdgeInsets.all(16),
       children: [
