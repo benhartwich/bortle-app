@@ -7,6 +7,7 @@ import 'api/models.dart';
 import 'api/session_store.dart';
 import 'design.dart';
 import 'l10n.dart';
+import 'layout.dart';
 import 'push.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/hold_screen.dart';
@@ -143,7 +144,8 @@ class _BortleAppState extends State<BortleApp> {
   }
 }
 
-/// The five tabs at the bottom (docs/CONCEPT.md, "Navigation").
+/// The five tabs (docs/CONCEPT.md, "Navigation"): at the bottom on a phone, in a rail on
+/// the left from a tablet's width on (lib/layout.dart).
 class HomeShell extends StatefulWidget {
   const HomeShell({
     super.key,
@@ -250,39 +252,75 @@ class _HomeShellState extends State<HomeShell> {
         onSignOut: widget.onSignOut,
       ),
     ];
+    // One stack under a key of its own: turning the tablet moves it from beside the rail to
+    // above the bar without losing a tab's state.
+    final stack = IndexedStack(key: _stackKey, index: _tab, children: pages);
+    final width = MediaQuery.sizeOf(context).width;
+    if (windowClassFor(width) == WindowClass.compact) {
+      return SkyBackground(
+        child: Scaffold(
+          body: stack,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _tab,
+            onDestinationSelected: _select,
+            destinations: [
+              for (final d in _destinations)
+                NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selected), label: d.label),
+            ],
+          ),
+        ),
+      );
+    }
+    final extended = width >= extendedRailMinWidth;
     return SkyBackground(
       child: Scaffold(
-        body: IndexedStack(index: _tab, children: pages),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _tab,
-          onDestinationSelected: (i) => setState(() => _tab = i),
-          destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.home_outlined),
-              selectedIcon: const Icon(Icons.home),
-              label: tr('Heute', 'Tonight'),
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // a phone on its side has the notch on the left
+            SafeArea(
+              right: false,
+              child: NavigationRail(
+                selectedIndex: _tab,
+                onDestinationSelected: _select,
+                extended: extended,
+                minExtendedWidth: 200,
+                labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+                groupAlignment: -1,
+                leading: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text('Bortle', style: Theme.of(context).textTheme.titleMedium),
+                ),
+                destinations: [
+                  for (final d in _destinations)
+                    NavigationRailDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selected), label: Text(d.label)),
+                ],
+              ),
             ),
-            NavigationDestination(
-              icon: const Icon(Icons.event_outlined),
-              selectedIcon: const Icon(Icons.event),
-              label: tr('Planen', 'Plan'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.radio_button_checked_outlined),
-              selectedIcon: const Icon(Icons.radio_button_checked),
-              label: tr('Teleskop', 'Telescope'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.photo_library_outlined),
-              selectedIcon: const Icon(Icons.photo_library),
-              label: tr('Galerie', 'Gallery'),
-            ),
-            NavigationDestination(icon: const Icon(Icons.more_horiz), label: tr('Mehr', 'More')),
+            VerticalDivider(width: 1, thickness: 1, color: context.tones.line),
+            Expanded(child: stack),
           ],
         ),
       ),
     );
   }
+
+  final _stackKey = GlobalKey(debugLabel: 'tabs');
+
+  void _select(int i) => setState(() => _tab = i);
+
+  /// The same five places in the bar and in the rail.
+  static List<({IconData icon, IconData selected, String label})> get _destinations => [
+    (icon: Icons.home_outlined, selected: Icons.home, label: tr('Heute', 'Tonight')),
+    (icon: Icons.event_outlined, selected: Icons.event, label: tr('Planen', 'Plan')),
+    (
+      icon: Icons.radio_button_checked_outlined,
+      selected: Icons.radio_button_checked,
+      label: tr('Teleskop', 'Telescope'),
+    ),
+    (icon: Icons.photo_library_outlined, selected: Icons.photo_library, label: tr('Galerie', 'Gallery')),
+    (icon: Icons.more_horiz, selected: Icons.more_horiz, label: tr('Mehr', 'More')),
+  ];
 }
 
 /// `/plan?night=2026-11-14` (the evening's date) → 0 tonight, 1 tomorrow, 2 the day after.

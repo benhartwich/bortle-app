@@ -253,6 +253,15 @@ ThemeData bortleTheme({bool red = false}) {
       indicatorColor: red ? Red.surface2 : const Color(0xFF1C2440),
       surfaceTintColor: Colors.transparent,
     ),
+    // the tablet's rail (lib/layout.dart) dressed like the phone's bar
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: red ? Red.bg : const Color(0xF0070A16),
+      indicatorColor: red ? Red.surface2 : const Color(0xFF1C2440),
+      selectedIconTheme: IconThemeData(color: scheme.onSurface),
+      unselectedIconTheme: IconThemeData(color: tones.muted),
+      selectedLabelTextStyle: body.copyWith(color: scheme.onSurface, fontSize: 12, fontWeight: FontWeight.w600),
+      unselectedLabelTextStyle: body.copyWith(color: tones.muted, fontSize: 12),
+    ),
     dialogTheme: DialogThemeData(
       backgroundColor: dialogBg,
       surfaceTintColor: Colors.transparent,
