@@ -137,6 +137,7 @@ class _BortleAppState extends State<BortleApp> {
               redLight: _red,
               onRedLight: _setRed,
               onSignOut: _signOut,
+              store: widget.store,
             ),
     );
   }
@@ -151,6 +152,7 @@ class HomeShell extends StatefulWidget {
     required this.redLight,
     required this.onRedLight,
     required this.onSignOut,
+    this.store,
   });
 
   final BortleClient client;
@@ -158,6 +160,9 @@ class HomeShell extends StatefulWidget {
   final bool redLight;
   final ValueChanged<bool> onRedLight;
   final VoidCallback onSignOut;
+
+  /// For the screens' small preferences (the rig's last page, Touch'N'Stars).
+  final SessionStore? store;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -229,6 +234,7 @@ class _HomeShellState extends State<HomeShell> {
         me: widget.me,
         active: _tab == 2,
         onRedLight: () => widget.onRedLight(!widget.redLight),
+        store: widget.store,
       ),
       GalleryScreen(client: widget.client),
       MoreScreen(

@@ -11,6 +11,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../api/bortle_client.dart';
 import '../api/models.dart';
+import '../api/session_store.dart';
 import '../charts.dart';
 import '../design.dart';
 import '../l10n.dart';
@@ -23,6 +24,7 @@ class TelescopeScreen extends StatefulWidget {
     required this.me,
     required this.active,
     required this.onRedLight,
+    this.store,
     super.key,
   });
 
@@ -32,6 +34,9 @@ class TelescopeScreen extends StatefulWidget {
   /// Whether the tab is on screen; polling runs only then.
   final bool active;
   final VoidCallback onRedLight;
+
+  /// Where the rig control keeps its last page and the Touch'N'Stars address.
+  final SessionStore? store;
 
   @override
   State<TelescopeScreen> createState() => _TelescopeScreenState();
@@ -127,7 +132,7 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
         ),
       ),
     ),
-    _View.control => RigControl(client: widget.client, active: widget.active),
+    _View.control => RigControl(client: widget.client, active: widget.active, store: widget.store),
   };
 }
 

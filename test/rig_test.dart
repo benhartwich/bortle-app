@@ -10,8 +10,11 @@ import 'package:material_ui/material_ui.dart';
 
 import 'fake_server.dart';
 
-Widget app(FakeServer server) => BortleApp(
-  store: MemorySessionStore()..session = const StoredSession('https://bortle.eu', FakeServer.token),
+MemorySessionStore signedIn() =>
+    MemorySessionStore()..session = const StoredSession('https://bortle.eu', FakeServer.token);
+
+Widget app(FakeServer server, [MemorySessionStore? store]) => BortleApp(
+  store: store ?? signedIn(),
   clientFor: (url, token) => BortleClient(baseUrl: url, token: token, http_: server.client),
 );
 
@@ -21,9 +24,9 @@ void phone(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
-Future<void> openControl(WidgetTester tester, FakeServer server) async {
+Future<void> openControl(WidgetTester tester, FakeServer server, [MemorySessionStore? store]) async {
   phone(tester);
-  await tester.pumpWidget(app(server));
+  await tester.pumpWidget(app(server, store));
   await tester.pumpAndSettle();
   await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Teleskop')));
   await tester.pumpAndSettle();
@@ -31,16 +34,21 @@ Future<void> openControl(WidgetTester tester, FakeServer server) async {
   await tester.pumpAndSettle();
 }
 
-final _list = find.byKey(const Key('rig-control'));
+final _page = find.byKey(const Key('rig-page'));
 
+/// Opens a device's page from the bar at the top.
 Future<void> open(WidgetTester tester, String section) async {
-  final tile = find.byKey(Key('rig-$section'));
-  await tester.scrollUntilVisible(
-    tile,
-    200,
-    scrollable: find.descendant(of: _list, matching: find.byType(Scrollable)).first,
-  );
-  await tester.tap(find.descendant(of: tile, matching: find.byType(ListTile)).first);
+  final button = find.byKey(Key('rig-$section'));
+  // the whole strip is built (it is short); bring the one button into sight
+  await tester.ensureVisible(find.byKey(Key('rig-$section'), skipOffstage: false));
+  await tester.pumpAndSettle();
+  await tester.tap(button);
+  await tester.pumpAndSettle();
+}
+
+/// One of the mount page's tabs: control | slew | tppa | flip.
+Future<void> mountTab(WidgetTester tester, String tab) async {
+  await tester.tap(find.byKey(Key('mount-tab-$tab')));
   await tester.pumpAndSettle();
 }
 
@@ -49,8 +57,10 @@ Future<void> tapKey(WidgetTester tester, String key) async {
   await tester.scrollUntilVisible(
     target,
     200,
-    scrollable: find.descendant(of: _list, matching: find.byType(Scrollable)).first,
+    scrollable: find.descendant(of: _page, matching: find.byType(Scrollable)).first,
   );
+  // the last answer's snack bar floats over the bottom of the page; a hand would wait
+  ScaffoldMessenger.of(tester.element(target)).removeCurrentSnackBar();
   await tester.pumpAndSettle();
   await tester.tap(target);
   await tester.pumpAndSettle();
@@ -108,6 +118,11 @@ void main() {
     await tester.enterText(find.byKey(const Key('capture-exposure')), '5');
     await tapKey(tester, 'capture');
     expect(server.controls.last, {'action': 'capture', 'duration': 5.0, 'gain': 100});
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('capture-image')),
+      200,
+      scrollable: find.descendant(of: _page, matching: find.byType(Scrollable)).first,
+    );
     expect(find.byKey(const Key('capture-image')), findsOneWidget);
     expect(find.textContaining('a look, not a measurement'), findsOneWidget);
   });
@@ -218,6 +233,7 @@ void main() {
     final server = FakeServer();
     await openControl(tester, server);
     await open(tester, 'mount');
+    await mountTab(tester, 'tppa');
     await tapKey(tester, 'open-tppa');
     expect(find.text('Polausrichtung'), findsOneWidget);
     expect(find.byKey(const Key('tppa-total')), findsOneWidget);
@@ -247,6 +263,7 @@ void main() {
     final server = FakeServer()..tppaAvailable = false;
     await openControl(tester, server);
     await open(tester, 'mount');
+    await mountTab(tester, 'tppa');
     await tapKey(tester, 'open-tppa');
     expect(find.byKey(const Key('tppa-unavailable')), findsOneWidget);
     expect(find.byKey(const Key('tppa-start')), findsNothing);

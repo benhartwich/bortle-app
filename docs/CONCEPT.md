@@ -72,13 +72,20 @@ The bottom bar has five tabs; everything else is pushed on top.
      - QC verdict per frame
    - *Verlauf* (History): HFR, star count, guiding RMS, temperature and focuser
      position over the session, plus the events.
-   - *Steuern* (Control): tiles for each device, every one a detail screen:
-     - Mount: jog pad with rates, slew to target, tracking, park and unpark,
-       meridian flip settings (shown, not set).
+   - *Steuern* (Control): a strip of round device buttons on top, as in
+     Touch'N'Stars, each with a red badge while N.I.N.A. reports that device as
+     not connected; the chosen device's page below it, remembered across
+     visits. The strip's menu opens Touch'N'Stars itself in the phone's browser,
+     at an address the user enters (none is assumed).
+     - Mount, in tabs: control (park and unpark, nudge pad, tracking rate,
+       home, stop), slew to a searched target or typed J2000 coordinates (with
+       N.I.N.A.'s centring), TPPA, and the meridian flip settings (shown, not
+       set).
      - Camera: single exposure, cooling and warming, gain, binning, dew heater.
      - Focus: step in and out, run autofocus, the live curve and its verdict.
      - Guiding: start and stop, the RMS graph, clear calibration.
-     - Filter wheel, rotator, flat panel (light, cover, brightness).
+     - Filter wheel; rotator and flat panel (light, cover, brightness) only
+       when the rig has them.
      - Sequence: load, start, stop, skip, the instruction tree.
      - Framing and TPPA polar alignment.
      - Devices: connect and disconnect, with the driver N.I.N.A. actually
