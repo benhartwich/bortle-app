@@ -26,6 +26,8 @@ dependencies:
   # The site for the tools without an account (lib/tools): where the phone is, coarse,
   # used on the phone only; the weather asks with the place rounded to 0.1°.
   geolocator: ^14.1.2
+  # Opens Touch'N'Stars (NINA's web plugin) in the phone's browser from the rig page.
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:
