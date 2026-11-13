@@ -2,6 +2,7 @@
 
 import 'package:bortle_app/api/bortle_client.dart';
 import 'package:bortle_app/framing/framing_screen.dart';
+import 'package:bortle_app/main.dart' show planNightOffset;
 import 'package:bortle_app/nav/sky_and_framing.dart';
 import 'package:bortle_app/sky/sky_map_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,5 +31,18 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(FramingScreen), findsOneWidget);
     expect(tester.widget<FramingScreen>(find.byType(FramingScreen)).target, 'M 31');
+  });
+
+  test('a push for /plan?night= picks that night', () {
+    final evening = DateTime(2026, 11, 13, 20);
+    final morning = DateTime(2026, 11, 14, 7);
+    expect(planNightOffset('2026-11-13', evening), 0);
+    expect(planNightOffset('2026-11-14', evening), 1);
+    expect(planNightOffset('2026-11-15', evening), 2);
+    expect(planNightOffset('2026-11-20', evening), 2);
+    expect(planNightOffset('2026-11-13', morning), 0); // still last night
+    expect(planNightOffset('2026-11-14', morning), 1);
+    expect(planNightOffset(null, evening), 0);
+    expect(planNightOffset('kaputt', evening), 0);
   });
 }

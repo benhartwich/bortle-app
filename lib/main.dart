@@ -201,6 +201,8 @@ class _HomeShellState extends State<HomeShell> {
     _open(tap.path);
   }
 
+  final _planNight = ValueNotifier<int?>(null);
+
   /// The deep links the server sends: `/holds/<id>`, `/runs/<name>`, `/telescope`, else Tonight.
   void _open(String path) {
     final parts = Uri.parse(path).pathSegments;
@@ -219,6 +221,9 @@ class _HomeShellState extends State<HomeShell> {
           builder: (_) => RunScreen(client: widget.client, name: parts[1]),
         ),
       );
+    } else if (parts.length == 1 && parts[0] == 'plan') {
+      setState(() => _tab = 1);
+      _planNight.value = planNightOffset(Uri.parse(path).queryParameters['night'], DateTime.now());
     } else {
       setState(() => _tab = parts.isNotEmpty && parts[0] == 'telescope' ? 2 : 0);
     }
@@ -228,7 +233,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final pages = [
       TodayScreen(client: widget.client, onRedLight: () => widget.onRedLight(!widget.redLight)),
-      PlanScreen(client: widget.client, me: widget.me),
+      PlanScreen(client: widget.client, me: widget.me, nightRequest: _planNight),
       TelescopeScreen(
         client: widget.client,
         me: widget.me,
@@ -278,4 +283,14 @@ class _HomeShellState extends State<HomeShell> {
       ),
     );
   }
+}
+
+/// `/plan?night=2026-11-14` (the evening's date) → 0 tonight, 1 tomorrow, 2 the day after.
+/// Before noon, tonight is still yesterday's evening.
+int planNightOffset(String? night, DateTime now) {
+  final date = night == null ? null : DateTime.tryParse(night);
+  if (date == null) return 0;
+  final evening = now.hour < 12 ? DateTime(now.year, now.month, now.day - 1) : DateTime(now.year, now.month, now.day);
+  final days = DateTime(date.year, date.month, date.day).difference(evening).inHours / 24;
+  return days.round().clamp(0, 2);
 }

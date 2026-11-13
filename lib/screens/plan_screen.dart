@@ -16,8 +16,11 @@ import '../tools/tools_store.dart';
 import '../widgets.dart';
 
 class PlanScreen extends StatefulWidget {
-  const PlanScreen({required this.client, required this.me, Locate? locate, super.key})
+  const PlanScreen({required this.client, required this.me, Locate? locate, this.nightRequest, super.key})
     : locate = locate ?? locateWithGps;
+
+  /// A night to show, set from outside (a push's `/plan?night=`): 0 tonight … 2.
+  final ValueNotifier<int?>? nightRequest;
 
   final BortleClient client;
 
@@ -62,6 +65,19 @@ class _PlanScreenState extends State<PlanScreen> {
         );
   }
 
+  @override
+  void dispose() {
+    widget.nightRequest?.removeListener(_onNightRequest);
+    super.dispose();
+  }
+
+  void _onNightRequest() {
+    final night = widget.nightRequest?.value;
+    if (night == null) return;
+    widget.nightRequest!.value = null;
+    if (night != _night) _showNight(night);
+  }
+
   void _showNight(int night) => setState(() {
     _night = night;
     _recommended = _recommend();
@@ -98,6 +114,8 @@ class _PlanScreenState extends State<PlanScreen> {
     widget.client.developLevel().then((l) {
       if (mounted) setState(() => _level = l);
     }, onError: (_) {});
+    widget.nightRequest?.addListener(_onNightRequest);
+    _onNightRequest();
   }
 
   void _pick(String object, {Recommendation? from}) {
