@@ -117,6 +117,10 @@ class MountState {
     this.atHome = false,
     this.canFindHome,
     this.canSlew,
+    this.raDeg,
+    this.decDeg,
+    this.siteLat,
+    this.siteLon,
   });
 
   factory MountState.fromJson(Map j) => MountState(
@@ -132,6 +136,10 @@ class MountState {
     atHome: _b(j['AtHome']),
     canFindHome: j['CanFindHome'] is bool ? j['CanFindHome'] as bool : null,
     canSlew: j['CanSlew'] is bool ? j['CanSlew'] as bool : null,
+    raDeg: _raDeg(_d(j['RightAscension'])),
+    decDeg: _d(j['Declination']),
+    siteLat: _d(j['SiteLatitude']),
+    siteLon: _d(j['SiteLongitude']),
   );
 
   /// NINA's TrackingMode arrives as its name or its index, in the order nina_live.py
@@ -144,6 +152,10 @@ class MountState {
 
   /// The names the server's `tracking` action takes (nina_live._TRACKING_MODES).
   static const trackingModes = ['sidereal', 'lunar', 'solar', 'king', 'stopped'];
+
+  /// NINA reports RA in hours; a value above 24 can only be degrees already (the
+  /// orchestrator reads the unit off the number the same way, app.py).
+  static double? _raDeg(double? ra) => ra == null ? null : (ra > 24 ? ra : ra * 15);
 
   final bool connected;
   final bool atPark;
@@ -165,6 +177,15 @@ class MountState {
   /// The mount's capabilities; null when it did not say (then the button stays).
   final bool? canFindHome;
   final bool? canSlew;
+
+  /// Where the mount points, in degrees – of date (JNow), as the mount reads out, not
+  /// J2000 like the catalogue: about 0.35° apart today.
+  final double? raDeg;
+  final double? decDeg;
+
+  /// The site the mount itself believes it is at.
+  final double? siteLat;
+  final double? siteLon;
 }
 
 class RotatorState {

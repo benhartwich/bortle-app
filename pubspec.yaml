@@ -28,6 +28,9 @@ dependencies:
   geolocator: ^14.1.2
   # Opens Touch'N'Stars (NINA's web plugin) in the phone's browser from the rig page.
   url_launcher: ^6.3.3
+  # The sky map's "Handy-Ausrichtung" (lib/sky): accelerometer and magnetometer, read
+  # only while that mode is on (BSD-3-Clause).
+  sensors_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +64,9 @@ flutter:
   # Messier and bright NGC/IC objects from OpenNGC (CC BY-SA 4.0, assets/CATALOG.md).
   assets:
     - assets/catalog.json
+    # The sky map's stars and constellation figures, from d3-celestial (BSD-3-Clause,
+    # assets/SKY.md, LICENSES/BSD-3-Clause-d3-celestial.txt).
+    - assets/sky.json
 
   # Display font, the same as allskyhub's (OFL-1.1, LICENSES/OFL-1.1.txt).
   fonts:

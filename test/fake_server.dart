@@ -86,6 +86,7 @@ class FakeServer {
       'reasons': ['culminates at ${maxAlt.round()}°'],
     };
     return {
+      'site': {'latitude': 48.2, 'longitude': 14.2, 'elevation_m': 300.0},
       'night': {
         'start': '2026-11-14T17:20:00+00:00',
         'end': '2026-11-15T04:20:00+00:00',
@@ -766,6 +767,11 @@ class FakeServer {
       'SideOfPier': 'pierWest',
       'CanFindHome': true,
       'CanSlew': true,
+      // on NGC 7000, of date (JNow): RA in hours as NINA reports it
+      'RightAscension': 21.0,
+      'Declination': 44.43,
+      'SiteLatitude': 48.2,
+      'SiteLongitude': 14.2,
     },
     'focuser': {'Position': 8150, 'IsMoving': false, 'Temperature': 3.1},
   };
