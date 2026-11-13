@@ -8,6 +8,10 @@ TONIGHT
 AT THE TELESCOPE (with N.I.N.A.)
 • The camera's latest frame with HFR, star count and guiding
 • Every frame of the night and its curves: HFR, stars, guiding, temperature, focus
+• Every device on its own: camera, mount, focuser, filter wheel, guiding, rotator and flat panel, with connection status
+• Mount: slew to a catalogue target, tracking, park, polar alignment (TPPA), meridian flip
+• Framing: turn and shift your field on the sky image, then slew and centre
+• A sky map with tonight's targets that follows your phone
 • Stop the sequence or end the night through N.I.N.A., always after asking you
 
 PLAN
@@ -23,8 +27,6 @@ NOTIFICATIONS
 FOR THE NIGHT OUTSIDE
 • Red light mode that keeps your dark adaptation
 
-What you need: an account on bortle.eu or your own Bortle install, whose address you enter when you sign in. The app controls only a telescope you run yourself. Mount safety (parking, aborts, meridian flips) stays in N.I.N.A.; the app does not interfere with it.
-
-Not in yet: controlling mount, camera, focuser and filter wheel one by one. It is coming.
+What you need: an account on bortle.eu – Bortle is in private beta, request access on bortle.eu ("Zugang beantragen") – or your own Bortle install, whose address you enter when you sign in. The app controls only a telescope you run yourself. Mount safety (parking, aborts, meridian flips) stays in N.I.N.A.; the app does not interfere with it.
 
 No trackers, no ads. Bortle is open source: github.com/benhartwich/bortle-app
