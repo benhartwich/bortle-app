@@ -11,11 +11,12 @@ play/<language>/short_description.txt ≤ 80
 play/<language>/full_description.txt  ≤ 4000, also the App Store description
 play/<language>/feature.png           1024 × 500 (tool/store_graphics.py)
 play/<language>/screenshots/          1080 × 2400, eight (test/screenshots_test.dart)
+play/<language>/tablet7/, tablet10/   tablets, see below
 appstore/<language>/name.txt          ≤ 30
 appstore/<language>/subtitle.txt      ≤ 30
 appstore/<language>/keywords.txt      ≤ 100, comma separated
 appstore/<language>/promotional_text.txt ≤ 170
-appstore/screenshots/<language>/      1320 × 2868 (6.9″), eight
+appstore/screenshots/<language>/      1320 × 2868 (6.9″), eight; ipad/ below
 appstore/review_notes.txt             ≤ 4000, English, the App Review notes (no credentials)
 ```
 
@@ -23,15 +24,34 @@ Languages: `de-DE` (default) and `en-US`.
 
 ### Tablets (since 0.7.0)
 
-The app lays itself out for tablets (lib/layout.dart) and is built for iPad as well as
-iPhone (`TARGETED_DEVICE_FAMILY = "1,2"`). That asks for screenshots this folder does not
-have yet; `test/screenshots_test.dart` renders phones only so far.
+The app lays itself out for tablets (lib/layout.dart: a rail from 600 dp, list and detail
+side by side from 840 dp) and is built for iPad as well as iPhone
+(`TARGETED_DEVICE_FAMILY = "1,2"`). The tablet shots show what the width buys: the plan
+beside the recommendations, the run beside the gallery, the rig's controls beside the
+live frame.
 
 ```
-appstore/screenshots/<language>/ipad/  2064 × 2752 (13″ iPad), required for an iPad build
-play/<language>/tablet7/                7″ tablet, optional; Play shows the app as
-play/<language>/tablet10/               "designed for tablets" only with these
+play/<language>/tablet7/                1920 × 1080, eight (960 × 540 dp at 2×)
+play/<language>/tablet10/               2560 × 1440, eight (1280 × 720 dp at 2×)
+appstore/screenshots/<language>/ipad/   2064 × 2752 (13″ iPad, upright), eight
+                                        (1032 × 1376 pt at 2×)
 ```
+
+Why these sizes:
+
+- **Play** takes JPEG or 24-bit PNG without alpha, each side 320–3840 px, the long side at
+  most twice the short one. For tablets and large screens it asks for 16:9 (landscape) or
+  9:16 (portrait) with each side at least 1080 px; Play shows an app as "designed for
+  tablets" only with these. Both tablet sizes are 16:9 landscape, both above 1080 px and
+  below 3840 px. Landscape because that is where the two-pane layout shows (an upright 7″
+  tablet at 600 dp gets the rail but no second pane).
+- **App Store** builds every iPad size from the 13″ one: 2064 × 2752 upright (2752 × 2064
+  on its side, 2048 × 2732 also accepted). At 1032 pt the iPad is wide enough for two
+  panes upright as well. Needed once the iPad build ships.
+
+Every screenshot is written as an RGB PNG without alpha; both stores refuse one with an
+alpha channel. (The phone shots from before 0.7.0 carried an alpha channel, opaque
+everywhere; it was dropped without changing a pixel.)
 
 Regenerate:
 
@@ -39,7 +59,22 @@ Regenerate:
 uv run --no-project --with pillow python tool/store_graphics.py
 SCREENSHOT_IMAGES=<dir with images.json + jpgs> SCREENSHOT_OUT=store \
   flutter test test/screenshots_test.dart
+# only some devices, the others stay as they are:
+SCREENSHOT_DEVICES=tablet7,tablet10,ipad SCREENSHOT_IMAGES=… SCREENSHOT_OUT=store \
+  flutter test test/screenshots_test.dart
 ```
+
+Devices: `android`, `ios` (phones), `tablet7`, `tablet10`, `ipad`. `FLUTTER_ROOT` must
+point at the SDK (the test loads Roboto and the Material icons from its cache).
+
+`SCREENSHOT_IMAGES` holds the maintainer's own finished pictures, which stay out of the
+repository: `images.json` is a list of `{title, title_en, recipe, file, hours}` (the
+gallery's titles in German and English, the develop recipe, the JPG beside it, the
+integration in hours, read from the stacked masters as the gallery does). The tablet
+plan also shows the sky around each recommendation; put the DSS2 cutouts the planner
+serves next to them as `dss_<ra>_<dec>.jpg` (RA and Dec with four decimals, 2.6773° ×
+1.7893°, e.g. from `services/orchestrator/sky_preview.cutout`). Without them the
+thumbnails stay black with the frame drawn.
 
 The texts say what the app does today. Device control is named as missing until it
 ships; change the descriptions in the same commit that ships them.
