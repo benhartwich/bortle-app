@@ -59,7 +59,17 @@ extension RigPageInfo on RigPage {
 }
 
 class RigDeviceBar extends StatelessWidget {
-  const RigDeviceBar({required this.rig, required this.selected, required this.onSelect, this.trailing, super.key});
+  const RigDeviceBar({
+    required this.rig,
+    required this.selected,
+    required this.onSelect,
+    this.trailing,
+    this.vertical = false,
+    super.key,
+  });
+
+  /// A column down the left of the page instead of a strip above it (a tablet on its side).
+  final bool vertical;
 
   final RigState rig;
   final RigPage selected;
@@ -74,6 +84,33 @@ class RigDeviceBar extends StatelessWidget {
       for (final p in RigPage.values)
         if (p.shownFor(rig)) p,
     ];
+    final buttons = [
+      for (final p in pages)
+        _DeviceButton(
+          page: p,
+          selected: p == selected,
+          disconnected: p.disconnectedIn(rig),
+          vertical: vertical,
+          onTap: () => onSelect(p),
+        ),
+    ];
+    if (vertical) {
+      return SizedBox(
+        width: 84,
+        child: Column(
+          children: [
+            ?trailing,
+            Expanded(
+              child: ListView(
+                key: const Key('rig-device-bar'),
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                children: buttons,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return SizedBox(
       height: 84,
       child: Row(
@@ -83,15 +120,7 @@ class RigDeviceBar extends StatelessWidget {
               key: const Key('rig-device-bar'),
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              children: [
-                for (final p in pages)
-                  _DeviceButton(
-                    page: p,
-                    selected: p == selected,
-                    disconnected: p.disconnectedIn(rig),
-                    onTap: () => onSelect(p),
-                  ),
-              ],
+              children: buttons,
             ),
           ),
           ?trailing,
@@ -102,7 +131,15 @@ class RigDeviceBar extends StatelessWidget {
 }
 
 class _DeviceButton extends StatelessWidget {
-  const _DeviceButton({required this.page, required this.selected, required this.disconnected, required this.onTap});
+  const _DeviceButton({
+    required this.page,
+    required this.selected,
+    required this.disconnected,
+    required this.onTap,
+    this.vertical = false,
+  });
+
+  final bool vertical;
 
   final RigPage page;
   final bool selected;
@@ -123,6 +160,7 @@ class _DeviceButton extends StatelessWidget {
         onTap: onTap,
         child: SizedBox(
           width: 72,
+          height: vertical ? 80 : null,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
