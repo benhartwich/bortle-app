@@ -209,7 +209,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   _ => tones.muted,
                 }),
                 const SizedBox(width: 6),
-                Text(_runState(r.status), style: TextStyle(color: tones.muted, fontSize: 12)),
+                Text(runStateLabel(r.status), style: TextStyle(color: tones.muted, fontSize: 12)),
               ],
             ),
             onTap: () => _open(r.name),
@@ -220,7 +220,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
   );
 }
 
-String _runState(String status) => switch (status) {
+/// A run's status in words, for the list and the run page alike.
+String runStateLabel(String status) => switch (status) {
   'running' => tr('rechnet', 'computing'),
   'done' => tr('fertig', 'done'),
   'failed' => tr('fehlgeschlagen', 'failed'),

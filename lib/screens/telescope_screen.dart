@@ -67,7 +67,12 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
   Widget build(BuildContext context) {
     final tones = context.tones;
     final views = _operator || _demo;
-    final twoPane = views && context.twoPane;
+    // Side by side only on a tablet on its side. Upright, the live frame at full width
+    // would push its numbers out of a half-height pane, so the views stay one at a time
+    // (the controls still get the device column beside them).
+    final landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
+    final twoPane = views && context.twoPane && landscape;
+    final wide = context.windowClass != WindowClass.compact;
     // two panes: the overview is always on the left, the right one shows the rest
     final shown = twoPane && _view == _View.overview ? _View.control : _view;
     return Scaffold(
@@ -126,7 +131,7 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
                 if (_demo) const _RecordedBanner(),
                 Expanded(
                   child: !twoPane
-                      ? _body(tones, shown)
+                      ? _body(tones, shown, sideBar: wide)
                       : Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [

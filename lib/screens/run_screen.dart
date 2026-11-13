@@ -13,6 +13,7 @@ import '../l10n.dart';
 import '../layout.dart';
 import '../params.dart';
 import '../widgets.dart';
+import 'gallery_screen.dart' show runStateLabel;
 import 'redevelop_screen.dart';
 
 class RunScreen extends StatefulWidget {
@@ -76,7 +77,7 @@ class _RunScreenState extends State<RunScreen> {
                 padding: padding,
                 children: [
                   Text(
-                    running ? tr('Rechnet', 'Computing') : (r.status ?? ''),
+                    running ? tr('Rechnet', 'Computing') : runStateLabel(r.status ?? ''),
                     style: TextStyle(color: running ? Theme.of(context).colorScheme.primary : tones.muted),
                   ),
                   Text(r.displayTitle, style: Theme.of(context).textTheme.headlineSmall),

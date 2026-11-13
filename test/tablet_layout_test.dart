@@ -155,6 +155,21 @@ void main() {
     expect(tester.widget<ListView>(find.byKey(const Key('rig-device-bar'))).scrollDirection, Axis.horizontal);
   });
 
+  testWidgets('telescope on an upright large tablet: one view at a time, devices at the side', (tester) async {
+    size(tester, const Size(1032, 1376)); // iPad 13″ upright
+    await tester.pumpWidget(app(FakeServer()));
+    await tester.pumpAndSettle();
+    await openTab(tester, 'Teleskop');
+    expect(find.text('Übersicht'), findsOneWidget); // the overview is a view of its own again
+    expect(find.text('Guiding RMS'), findsOneWidget);
+    expect(find.byKey(const Key('rig-control')), findsNothing);
+    await tester.tap(find.text('Steuern'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('rig-control')), findsOneWidget);
+    final bar = tester.widget<ListView>(find.byKey(const Key('rig-device-bar')));
+    expect(bar.scrollDirection, Axis.vertical);
+  });
+
   testWidgets('More on a wide screen keeps its text at a readable width', (tester) async {
     size(tester, tabletLandscape);
     await tester.pumpWidget(app(FakeServer()));

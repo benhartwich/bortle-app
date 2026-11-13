@@ -711,10 +711,14 @@ Future<void> _tabletScenes(WidgetTester tester, _Tab tab, _Shot shot) async {
   await tester.pumpAndSettle();
   await shot('plan');
 
-  // the live frame on the left, the rig's controls on the right
+  // on its side: the live frame on the left, the camera controls on the right;
+  // upright (the iPad) the telescope shows one view at a time, so the live overview
   await tab('Teleskop', 'Telescope');
-  await tester.tap(find.byKey(const Key('rig-camera')));
-  await tester.pumpAndSettle();
+  final camera = find.byKey(const Key('rig-camera'));
+  if (camera.evaluate().isNotEmpty) {
+    await tester.tap(camera);
+    await tester.pumpAndSettle();
+  }
   await shot('telescope');
   await tester.tap(find.text(tr('Verlauf', 'History')));
   await tester.pumpAndSettle();
