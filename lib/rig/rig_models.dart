@@ -97,6 +97,10 @@ class MountState {
     this.altitude,
     this.sideOfPier,
     this.hoursToFlip,
+    this.raDeg,
+    this.decDeg,
+    this.siteLat,
+    this.siteLon,
   });
 
   factory MountState.fromJson(Map j) => MountState(
@@ -107,7 +111,15 @@ class MountState {
     altitude: _d(j['Altitude']),
     sideOfPier: _s(j['SideOfPier']),
     hoursToFlip: _d(j['TimeToMeridianFlip']),
+    raDeg: _raDeg(_d(j['RightAscension'])),
+    decDeg: _d(j['Declination']),
+    siteLat: _d(j['SiteLatitude']),
+    siteLon: _d(j['SiteLongitude']),
   );
+
+  /// NINA reports RA in hours; a value above 24 can only be degrees already (the
+  /// orchestrator reads the unit off the number the same way, app.py).
+  static double? _raDeg(double? ra) => ra == null ? null : (ra > 24 ? ra : ra * 15);
 
   final bool connected;
   final bool atPark;
@@ -118,6 +130,15 @@ class MountState {
 
   /// NINA's TimeToMeridianFlip, in hours.
   final double? hoursToFlip;
+
+  /// Where the mount points, in degrees – of date (JNow), as the mount reads out, not
+  /// J2000 like the catalogue: about 0.35° apart today.
+  final double? raDeg;
+  final double? decDeg;
+
+  /// The site the mount itself believes it is at.
+  final double? siteLat;
+  final double? siteLon;
 }
 
 class FocuserState {
