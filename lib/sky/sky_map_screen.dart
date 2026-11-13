@@ -520,12 +520,24 @@ class SkyMapScreenState extends State<SkyMapScreen> {
             },
           ),
         ),
-        Positioned(top: 8, left: 8, right: 8, child: _searchBox(tones)),
+        // On a tablet or a phone on its side the sky keeps the width: the search and the
+        // controls stay at a phone's width in the corners instead of spanning it.
+        Positioned(top: 8, left: 8, right: 8, child: _corner(Alignment.topLeft, _searchBox(tones))),
         Positioned(top: 64, right: 8, child: _compass(tones)),
-        Positioned(left: 8, right: 8, bottom: 8, child: _controls(context, frame, tones)),
+        Positioned(
+          left: 8,
+          right: 8,
+          bottom: 8,
+          child: _corner(Alignment.bottomLeft, _controls(context, frame, tones)),
+        ),
       ],
     );
   }
+
+  static Widget _corner(Alignment alignment, Widget child) => Align(
+    alignment: alignment,
+    child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520), child: child),
+  );
 
   Widget _searchBox(Tones tones) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
