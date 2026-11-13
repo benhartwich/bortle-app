@@ -6,9 +6,11 @@
 import 'dart:math' as math;
 
 import 'package:bortle_app/api/bortle_client.dart';
+import 'package:bortle_app/api/session_store.dart';
 import 'package:bortle_app/design.dart';
 import 'package:bortle_app/framing/framing_math.dart';
 import 'package:bortle_app/framing/framing_screen.dart';
+import 'package:bortle_app/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -239,4 +241,25 @@ void main() {
     expect(find.byType(ColorFiltered), findsOneWidget);
   });
 
+  testWidgets('a plan card opens the framing on its target', (tester) async {
+    phone(tester);
+    final server = FakeServer();
+    await tester.pumpWidget(
+      BortleApp(
+        store: MemorySessionStore()..session = const StoredSession('https://bortle.eu', FakeServer.token),
+        clientFor: (url, token) => BortleClient(baseUrl: url, token: token, http_: server.client),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Planen')));
+    await tester.pumpAndSettle();
+    final chip = find.byKey(const Key('rec-frame-Pacman Nebula'));
+    await tester.ensureVisible(chip);
+    await tester.pumpAndSettle();
+    await tester.tap(chip);
+    await tester.pumpAndSettle();
+    expect(find.byType(FramingScreen), findsOneWidget);
+    expect(find.text('Einrahmen · Pacman Nebula'), findsOneWidget);
+    expect(server.controls, isEmpty);
+  });
 }
