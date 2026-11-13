@@ -59,6 +59,9 @@ flutter:
   # Messier and bright NGC/IC objects from OpenNGC (CC BY-SA 4.0, assets/CATALOG.md).
   assets:
     - assets/catalog.json
+    # The sky map's stars and constellation figures, from d3-celestial (BSD-3-Clause,
+    # assets/SKY.md, LICENSES/BSD-3-Clause-d3-celestial.txt).
+    - assets/sky.json
 
   # Display font, the same as allskyhub's (OFL-1.1, LICENSES/OFL-1.1.txt).
   fonts:
