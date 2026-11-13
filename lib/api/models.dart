@@ -788,6 +788,8 @@ class SearchHit {
     this.type,
     this.catalog,
     this.sizeArcmin,
+    this.raDeg,
+    this.decDeg,
   });
 
   factory SearchHit.fromJson(Map j) => SearchHit(
@@ -797,6 +799,8 @@ class SearchHit {
     type: _str(j['type']),
     catalog: _str(j['catalog']),
     sizeArcmin: _dbl(j['size_arcmin']),
+    raDeg: _dbl(j['ra_deg']),
+    decDeg: _dbl(j['dec_deg']),
   );
 
   /// How the catalogue names it, e.g. "Heart Nebula".
@@ -808,4 +812,8 @@ class SearchHit {
   final String? type;
   final String? catalog;
   final double? sizeArcmin;
+
+  /// J2000, as the catalogue holds it; null from the older suggestions.
+  final double? raDeg;
+  final double? decDeg;
 }

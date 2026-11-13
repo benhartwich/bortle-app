@@ -64,6 +64,9 @@ extension RigCalls on BortleClient {
 
   Future<Map> rigAutofocusLive() async => await _rigSend('GET', '/api/bortle/nina/autofocus/live') as Map;
 
+  /// NINA's allow-listed profile settings; the meridian flip's are read-only there.
+  Future<Map> rigProfileSettings() async => await _rigSend('GET', '/api/bortle/nina/profile/settings') as Map;
+
   Future<Map> rigTppa() async => await _rigSend('GET', '/api/bortle/nina/tppa') as Map;
 
   /// One of NINA's operations, with room for the slow ones. Refusals come back as the
