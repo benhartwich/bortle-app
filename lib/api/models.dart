@@ -750,12 +750,17 @@ class RecommendedNight {
     this.darkHours = 0,
     this.cloudedOut = false,
     this.fovArcmin,
+    this.siteLat,
+    this.siteLon,
   });
 
   factory RecommendedNight.fromJson(Map j) {
     final night = (j['night'] as Map?) ?? const {};
+    final site = (j['site'] as Map?) ?? const {};
     final fov = j['fov_arcmin'];
     return RecommendedNight(
+      siteLat: _dbl(site['latitude']),
+      siteLon: _dbl(site['longitude']),
       targets: [for (final r in (j['recommendations'] as List? ?? const [])) Recommendation.fromJson(r as Map)],
       nightStart: _date(night['start']),
       nightEnd: _date(night['end']),
@@ -777,6 +782,10 @@ class RecommendedNight {
 
   /// The rig's field, width × height in arcminutes; null without optics in the profile.
   final (double, double)? fovArcmin;
+
+  /// The site the night was ranked for (the account's profile), in degrees.
+  final double? siteLat;
+  final double? siteLon;
 }
 
 /// One row of GET /plan/search: the offline catalogue of ~20 000 objects.
@@ -788,6 +797,8 @@ class SearchHit {
     this.type,
     this.catalog,
     this.sizeArcmin,
+    this.raDeg,
+    this.decDeg,
   });
 
   factory SearchHit.fromJson(Map j) => SearchHit(
@@ -797,6 +808,8 @@ class SearchHit {
     type: _str(j['type']),
     catalog: _str(j['catalog']),
     sizeArcmin: _dbl(j['size_arcmin']),
+    raDeg: _dbl(j['ra_deg']),
+    decDeg: _dbl(j['dec_deg']),
   );
 
   /// How the catalogue names it, e.g. "Heart Nebula".
@@ -808,4 +821,8 @@ class SearchHit {
   final String? type;
   final String? catalog;
   final double? sizeArcmin;
+
+  /// J2000, as the catalogue holds it; null from the older suggestions.
+  final double? raDeg;
+  final double? decDeg;
 }

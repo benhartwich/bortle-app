@@ -86,6 +86,7 @@ class FakeServer {
       'reasons': ['culminates at ${maxAlt.round()}°'],
     };
     return {
+      'site': {'latitude': 48.2, 'longitude': 14.2, 'elevation_m': 300.0},
       'night': {
         'start': '2026-11-14T17:20:00+00:00',
         'end': '2026-11-15T04:20:00+00:00',
@@ -421,7 +422,7 @@ class FakeServer {
         return json({'loaded': true});
       case ('GET', '/api/bortle/nina/live'):
         return ninaUp
-            ? json(liveSnapshot)
+            ? json(_live())
             : http.Response(fixture('live_unreachable.json'), 200, headers: {'content-type': 'application/json'});
       case ('GET', '/api/bortle/nina/frames'):
         return json({
@@ -701,7 +702,46 @@ class FakeServer {
   final refusals = <String, String>{};
   final nudges = <Map<String, Object?>>[];
   int tppaPolls = 0;
+
+  // --- framing (lib/framing) -------------------------------------------------------
+
+  /// The mount reports AtPark in /nina/live.
+  bool mountParked = false;
+
+  /// The angle NINA's framing assistant reads back after "determine rotation".
+  double ninaRotation = 123.4;
+
   bool tppaAvailable = true;
+
+  /// Devices the live snapshot reports as not connected.
+  final disconnected = <String>{};
+
+  /// A rotator with a driver chosen (shows the rotator page).
+  bool hasRotator = false;
+
+  /// Whether /nina/profile/settings answers.
+  bool profileSettings = true;
+  int profileReads = 0;
+
+  Map<String, Object?> _live() {
+    final devices = {...(liveSnapshot['devices'] as Map)};
+    for (final d in disconnected) {
+      devices[d] = {...(devices[d] as Map), 'connected': false};
+    }
+    if (hasRotator) {
+      devices['rotator'] = {
+        ...(devices['rotator'] as Map),
+        'connected': true,
+        'Name': 'Pegasus Falcon',
+        'Position': 92.5,
+        'MechanicalPosition': 92.5,
+        'IsMoving': false,
+      };
+    }
+    if (mountParked) devices['mount'] = {...(devices['mount'] as Map), 'AtPark': true};
+    return {...liveSnapshot, 'devices': devices};
+  }
+
   bool tppaRunning = false;
 
   /// NINA's own fields per device, as /nina/live passes them through.
@@ -716,7 +756,23 @@ class FakeServer {
       'GainMax': 10000,
       'IsExposing': false,
     },
-    'mount': {'AtPark': false, 'Slewing': false, 'TrackingEnabled': true, 'Altitude': 61.2, 'TimeToMeridianFlip': 1.5},
+    'mount': {
+      'AtPark': false,
+      'Slewing': false,
+      'TrackingEnabled': true,
+      'TrackingMode': 'Sidereal',
+      'Altitude': 61.2,
+      'TimeToMeridianFlip': 1.5,
+      'TimeToMeridianFlipString': '01:30:00',
+      'SideOfPier': 'pierWest',
+      'CanFindHome': true,
+      'CanSlew': true,
+      // on NGC 7000, of date (JNow): RA in hours as NINA reports it
+      'RightAscension': 21.0,
+      'Declination': 44.43,
+      'SiteLatitude': 48.2,
+      'SiteLongitude': 14.2,
+    },
     'focuser': {'Position': 8150, 'IsMoving': false, 'Temperature': 3.1},
   };
 
@@ -805,8 +861,74 @@ class FakeServer {
                 }
               : null,
         });
+      case ('GET', '/api/bortle/plan/framing'):
+        // services/planner/framing.py FramingAdvice.as_dict
+        return json({
+          'target': request.url.queryParameters['target'],
+          'known': framingAngle != null,
+          'position_angle_deg': framingAngle,
+          'measured_at': framingAngle != null ? '2026-10-28T21:14:00+00:00' : null,
+          'frames': framingAngle != null ? 12 : 0,
+          'note': framingAngle != null ? 'measured' : 'no solved frame for this target yet',
+          'warnings': [],
+          'measurements': [],
+        });
+      case ('GET', '/api/bortle/nina/framing'):
+        // nina_live.py framing_view
+        return json({
+          'source': 'SKYATLAS',
+          'ra_deg': 314.75,
+          'dec_deg': 44.33,
+          'rotation_deg': ninaRotation,
+          'fov_deg': 1.67,
+          'target_name': null,
+        });
       case ('GET', '/api/bortle/nina/capture'):
         return http.Response.bytes(_png, 200, headers: {'content-type': 'image/png'});
+      // shaped like nina_live.profile_settings_view: the flip sits in the "safety" group
+      case ('GET', '/api/bortle/nina/profile/settings'):
+        profileReads++;
+        if (!profileSettings) return json({'detail': 'NINA: profile not readable (profile)'}, 502);
+        return json({
+          'profile': {'id': 'p', 'name': 'Epsilon 160'},
+          'groups': [
+            {
+              'key': 'guider',
+              'label': 'Guiding',
+              'settings': [
+                {'path': 'GuiderSettings-SettleTime', 'label': 'Beruhigungszeit', 'type': 'int', 'value': 20},
+              ],
+            },
+            {
+              'key': 'safety',
+              'label': 'Meridian-Flip und Sicherheit',
+              'settings': [
+                {
+                  'path': 'SequenceSettings-DoMeridianFlip',
+                  'label': 'Meridian-Flip aktiv',
+                  'type': 'bool',
+                  'value': true,
+                  'editable': false,
+                },
+                {
+                  'path': 'MeridianFlipSettings-MinutesAfterMeridian',
+                  'label': 'Flip nach Meridian',
+                  'type': 'float',
+                  'value': 5.0,
+                  'unit': 'min',
+                  'editable': false,
+                },
+                {
+                  'path': 'SequenceSettings-ParkMountAtSequenceEnd',
+                  'label': 'Montierung am Sequenzende parken',
+                  'type': 'bool',
+                  'value': true,
+                  'editable': false,
+                },
+              ],
+            },
+          ],
+        });
       case ('POST', '/api/bortle/nina/nudge'):
         nudges.add((jsonDecode(request.body) as Map).cast<String, Object?>());
         return json({'step': {}, 'result': 'ok'});

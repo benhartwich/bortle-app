@@ -20,6 +20,8 @@ class RigState {
     required this.guidingActive,
     required this.rmsTotal,
     required this.sequenceRunning,
+    this.rotator = const RotatorState(),
+    this.flat = const FlatPanelState(),
   });
 
   factory RigState.fromJson(Map j) {
@@ -38,6 +40,8 @@ class RigState {
       guidingActive: _b(guiding['active']),
       rmsTotal: _d(guiding['rms_total_arcsec']),
       sequenceRunning: _b(sequence['running']),
+      rotator: RotatorState.fromJson(dev('rotator')),
+      flat: FlatPanelState.fromJson(dev('flatdevice')),
     );
   }
 
@@ -50,7 +54,18 @@ class RigState {
   final bool guidingActive;
   final double? rmsTotal;
   final bool sequenceRunning;
+  final RotatorState rotator;
+  final FlatPanelState flat;
+
+  /// How many of the five main devices (camera, mount, focuser, wheel, guider) are connected.
+  int get mainConnected =>
+      [camera.connected, mount.connected, focuser.connected, filterwheel, guider].where((c) => c).length;
 }
+
+/// Whether a device NINA lists is really part of this rig: connected, or a driver is
+/// chosen for it (NINA names it). NINA's placeholder for "nothing chosen" is not a device.
+bool _present(bool connected, String? name) =>
+    connected || (name != null && !const {'no device', 'kein gerät'}.contains(name.trim().toLowerCase()));
 
 class CameraState {
   const CameraState({
@@ -97,6 +112,15 @@ class MountState {
     this.altitude,
     this.sideOfPier,
     this.hoursToFlip,
+    this.flipText,
+    this.trackingMode,
+    this.atHome = false,
+    this.canFindHome,
+    this.canSlew,
+    this.raDeg,
+    this.decDeg,
+    this.siteLat,
+    this.siteLon,
   });
 
   factory MountState.fromJson(Map j) => MountState(
@@ -107,7 +131,31 @@ class MountState {
     altitude: _d(j['Altitude']),
     sideOfPier: _s(j['SideOfPier']),
     hoursToFlip: _d(j['TimeToMeridianFlip']),
+    flipText: _s(j['TimeToMeridianFlipString']),
+    trackingMode: _trackingMode(j['TrackingMode']),
+    atHome: _b(j['AtHome']),
+    canFindHome: j['CanFindHome'] is bool ? j['CanFindHome'] as bool : null,
+    canSlew: j['CanSlew'] is bool ? j['CanSlew'] as bool : null,
+    raDeg: _raDeg(_d(j['RightAscension'])),
+    decDeg: _d(j['Declination']),
+    siteLat: _d(j['SiteLatitude']),
+    siteLon: _d(j['SiteLongitude']),
   );
+
+  /// NINA's TrackingMode arrives as its name or its index, in the order nina_live.py
+  /// maps it.
+  static String? _trackingMode(Object? v) {
+    if (v is num && v.toInt() >= 0 && v.toInt() < trackingModes.length) return trackingModes[v.toInt()];
+    final text = _s(v)?.toLowerCase();
+    return trackingModes.contains(text) ? text : null;
+  }
+
+  /// The names the server's `tracking` action takes (nina_live._TRACKING_MODES).
+  static const trackingModes = ['sidereal', 'lunar', 'solar', 'king', 'stopped'];
+
+  /// NINA reports RA in hours; a value above 24 can only be degrees already (the
+  /// orchestrator reads the unit off the number the same way, app.py).
+  static double? _raDeg(double? ra) => ra == null ? null : (ra > 24 ? ra : ra * 15);
 
   final bool connected;
   final bool atPark;
@@ -118,6 +166,114 @@ class MountState {
 
   /// NINA's TimeToMeridianFlip, in hours.
   final double? hoursToFlip;
+
+  /// NINA's own text for it ("01:30:00").
+  final String? flipText;
+
+  /// sidereal | lunar | solar | king | stopped, when the mount says.
+  final String? trackingMode;
+  final bool atHome;
+
+  /// The mount's capabilities; null when it did not say (then the button stays).
+  final bool? canFindHome;
+  final bool? canSlew;
+
+  /// Where the mount points, in degrees – of date (JNow), as the mount reads out, not
+  /// J2000 like the catalogue: about 0.35° apart today.
+  final double? raDeg;
+  final double? decDeg;
+
+  /// The site the mount itself believes it is at.
+  final double? siteLat;
+  final double? siteLon;
+}
+
+class RotatorState {
+  const RotatorState({this.connected = false, this.name, this.position, this.mechanical, this.moving = false});
+
+  factory RotatorState.fromJson(Map j) => RotatorState(
+    connected: _b(j['connected']),
+    name: _s(j['Name']),
+    position: _d(j['Position']),
+    mechanical: _d(j['MechanicalPosition']),
+    moving: _b(j['IsMoving']),
+  );
+
+  final bool connected;
+  final String? name;
+
+  /// Sky angle and mechanical angle, in degrees.
+  final double? position;
+  final double? mechanical;
+  final bool moving;
+
+  bool get present => _present(connected, name);
+}
+
+/// The flat panel (NINA's "flatdevice"): light, brightness, and a cover if it has one.
+class FlatPanelState {
+  const FlatPanelState({
+    this.connected = false,
+    this.name,
+    this.coverState,
+    this.lightOn,
+    this.brightness,
+    this.minBrightness,
+    this.maxBrightness,
+    this.supportsOpenClose,
+    this.supportsOnOff,
+  });
+
+  factory FlatPanelState.fromJson(Map j) => FlatPanelState(
+    connected: _b(j['connected']),
+    name: _s(j['Name']),
+    coverState: _s(j['LocalizedCoverState']) ?? _s(j['CoverState']),
+    lightOn: j['LightOn'] is bool ? j['LightOn'] as bool : null,
+    brightness: _i(j['Brightness']),
+    minBrightness: _i(j['MinBrightness']),
+    maxBrightness: _i(j['MaxBrightness']),
+    supportsOpenClose: j['SupportsOpenClose'] is bool ? j['SupportsOpenClose'] as bool : null,
+    supportsOnOff: j['SupportsOnOff'] is bool ? j['SupportsOnOff'] as bool : null,
+  );
+
+  final bool connected;
+  final String? name;
+  final String? coverState;
+  final bool? lightOn;
+  final int? brightness;
+  final int? minBrightness;
+  final int? maxBrightness;
+  final bool? supportsOpenClose;
+  final bool? supportsOnOff;
+
+  bool get present => _present(connected, name);
+}
+
+/// One of NINA's allow-listed profile settings, as /nina/profile/settings describes it.
+class ProfileSetting {
+  const ProfileSetting({required this.path, required this.label, this.value, this.unit, this.note});
+
+  factory ProfileSetting.fromJson(Map j) => ProfileSetting(
+    path: '${j['path']}',
+    label: _s(j['label']) ?? '${j['path']}',
+    value: j['value'],
+    unit: _s(j['unit']),
+    note: _s(j['note']),
+  );
+
+  final String path;
+  final String label;
+  final Object? value;
+  final String? unit;
+  final String? note;
+
+  /// The meridian flip's own settings, out of the server's "safety" group.
+  static List<ProfileSetting> meridianFlip(Map j) => [
+    for (final g in (j['groups'] as List? ?? const []))
+      if (g is Map)
+        for (final s in (g['settings'] as List? ?? const []))
+          if (s is Map && '${s['path']}'.contains('MeridianFlip')) ProfileSetting.fromJson(s),
+  ];
 }
 
 class FocuserState {

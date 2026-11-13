@@ -1,4 +1,5 @@
-// Where the app keeps the server address, its device token and the red light choice.
+// Where the app keeps the server address, its device token, the red light choice and the
+// few small preferences of the screens (the rig's last page, the Touch'N'Stars address).
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -17,6 +18,12 @@ abstract class SessionStore {
   Future<void> clear();
   Future<bool> redLight();
   Future<void> setRedLight(bool on);
+
+  /// A small preference by name; null when never set.
+  Future<String?> setting(String key);
+
+  /// Sets a preference; null forgets it.
+  Future<void> setSetting(String key, String? value);
 }
 
 /// Keychain (iOS) / Keystore-backed storage (Android).
@@ -64,6 +71,14 @@ class SecureSessionStore implements SessionStore {
   @override
   Future<void> setRedLight(bool on) => _storage.write(key: _redKey, value: on ? '1' : '0');
 
+  // Preferences live under their own prefix, apart from the session's keys.
+  @override
+  Future<String?> setting(String key) => _storage.read(key: 'pref_$key');
+
+  @override
+  Future<void> setSetting(String key, String? value) =>
+      value == null ? _storage.delete(key: 'pref_$key') : _storage.write(key: 'pref_$key', value: value);
+
   Future<String?> lastServer() => _storage.read(key: _serverKey);
 }
 
@@ -86,4 +101,13 @@ class MemorySessionStore implements SessionStore {
 
   @override
   Future<void> setRedLight(bool on) async => red = on;
+
+  final settings = <String, String>{};
+
+  @override
+  Future<String?> setting(String key) async => settings[key];
+
+  @override
+  Future<void> setSetting(String key, String? value) async =>
+      value == null ? settings.remove(key) : settings[key] = value;
 }

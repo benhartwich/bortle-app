@@ -8,6 +8,10 @@ HEUTE NACHT
 AM TELESKOP (mit N.I.N.A.)
 • Das letzte Bild der Kamera mit HFR, Sternzahl und Guiding
 • Alle Frames der Nacht und ihr Verlauf: HFR, Sterne, Guiding, Temperatur, Fokus
+• Jedes Gerät einzeln: Kamera, Montierung, Fokus, Filterrad, Guiding, Rotator und Flat-Panel, mit Verbindungsanzeige
+• Montierung: Schwenken zu einem Ziel aus dem Katalog, Nachführung, Parken, Polausrichtung (TPPA), Meridian-Flip
+• Framing: dein Bildfeld auf dem Himmelsbild drehen und verschieben, dann schwenken und zentrieren
+• Himmelskarte mit den Zielen der Nacht, die dem Handy folgt
 • Sequenz anhalten oder die Nacht über N.I.N.A. beenden, immer mit Rückfrage
 
 PLANEN
@@ -23,8 +27,6 @@ BENACHRICHTIGUNGEN
 FÜR DIE NACHT DRAUSSEN
 • Rotlicht-Modus, der die Dunkeladaption schont
 
-Was du brauchst: ein Konto auf bortle.eu oder eine eigene Bortle-Installation, deren Adresse du beim Anmelden einträgst. Steuern kann die App nur das Teleskop, das du selbst betreibst. Die Sicherheit der Montierung (Parken, Abbruch, Meridian-Flip) bleibt in N.I.N.A., die App greift darin nicht ein.
-
-Noch nicht dabei: die einzelne Steuerung von Montierung, Kamera, Fokus und Filterrad. Sie folgt.
+Was du brauchst: ein Konto auf bortle.eu – Bortle ist in der privaten Beta, den Zugang beantragst du auf bortle.eu („Zugang beantragen“) – oder eine eigene Bortle-Installation, deren Adresse du beim Anmelden einträgst. Steuern kann die App nur das Teleskop, das du selbst betreibst. Die Sicherheit der Montierung (Parken, Abbruch, Meridian-Flip) bleibt in N.I.N.A., die App greift darin nicht ein.
 
 Keine Tracker, keine Werbung. Bortle ist Open Source: github.com/benhartwich/bortle-app
