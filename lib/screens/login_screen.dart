@@ -8,6 +8,7 @@ import '../api/bortle_client.dart';
 import '../api/models.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../layout.dart';
 import '../tools/tools_screen.dart';
 
 typedef ClientFactory = BortleClient Function(String baseUrl, String? token);
@@ -119,137 +120,140 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: SkyBackground(
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
-            children: [
-              Text('Bortle', style: Theme.of(context).textTheme.displaySmall),
-              const SizedBox(height: 6),
-              Text(tr('Planen, aufnehmen, entwickeln – von unterwegs.', 'Plan, capture, develop – on the go.')),
-              const SizedBox(height: 28),
-              SegmentedButton<bool>(
-                segments: [
-                  const ButtonSegment(value: false, label: Text('bortle.eu')),
-                  ButtonSegment(value: true, label: Text(tr('Eigene Instanz', 'Own install'))),
-                ],
-                selected: {_own},
-                onSelectionChanged: (s) {
-                  setState(() {
-                    _own = s.first;
-                    _info = null;
-                    _error = null;
-                  });
-                  if (!_own) _check();
-                },
-              ),
-              if (_own) ...[
-                const SizedBox(height: 16),
-                TextField(
-                  key: const Key('server'),
-                  controller: _server,
-                  keyboardType: TextInputType.url,
-                  autocorrect: false,
-                  decoration: InputDecoration(
-                    labelText: tr('Adresse deiner Bortle-Instanz', 'Address of your Bortle install'),
-                    hintText: 'https://bortle.example.org',
-                  ),
-                  onChanged: (_) => setState(() => _info = null),
-                  onSubmitted: (_) => _check(),
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton(onPressed: _busy ? null : _check, child: Text(tr('Prüfen', 'Check'))),
-                ),
-                if (isInsecureOutsideHome(_url))
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Text(
-                      tr(
-                        'Achtung: http ohne Verschlüsselung außerhalb des Heimnetzes – Passwort und Zugang gingen lesbar übers Netz.',
-                        'Careful: plain http outside a home network – password and access would cross the net readable.',
-                      ),
-                      style: TextStyle(color: tones.warn),
-                    ),
-                  ),
-              ],
-              if (ready) ...[
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(Icons.check_circle_outline, color: tones.good, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        info.needsLogin
-                            ? tr('Bortle ${info.version} gefunden', 'Found Bortle ${info.version}')
-                            : tr(
-                                'Bortle ${info.version} im lokalen Modus – keine Anmeldung nötig',
-                                'Bortle ${info.version} in local mode – no sign-in needed',
-                              ),
-                      ),
-                    ),
+          child: Readable(
+            base: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+            builder: (context, padding) => ListView(
+              padding: padding,
+              children: [
+                Text('Bortle', style: Theme.of(context).textTheme.displaySmall),
+                const SizedBox(height: 6),
+                Text(tr('Planen, aufnehmen, entwickeln – von unterwegs.', 'Plan, capture, develop – on the go.')),
+                const SizedBox(height: 28),
+                SegmentedButton<bool>(
+                  segments: [
+                    const ButtonSegment(value: false, label: Text('bortle.eu')),
+                    ButtonSegment(value: true, label: Text(tr('Eigene Instanz', 'Own install'))),
                   ],
+                  selected: {_own},
+                  onSelectionChanged: (s) {
+                    setState(() {
+                      _own = s.first;
+                      _info = null;
+                      _error = null;
+                    });
+                    if (!_own) _check();
+                  },
                 ),
-                if (info.needsLogin) ...[
+                if (_own) ...[
                   const SizedBox(height: 16),
                   TextField(
-                    key: const Key('login'),
-                    controller: _login,
+                    key: const Key('server'),
+                    controller: _server,
+                    keyboardType: TextInputType.url,
                     autocorrect: false,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.email, AutofillHints.username],
-                    decoration: InputDecoration(labelText: tr('E-Mail oder Name', 'Email or name')),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    key: const Key('password'),
-                    controller: _password,
-                    obscureText: true,
-                    autofillHints: const [AutofillHints.password],
-                    decoration: InputDecoration(labelText: tr('Passwort', 'Password')),
-                    onSubmitted: (_) => _signIn(),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    tr(
-                      'Dieses Gerät erscheint im Profil als „$_deviceLabel“ und lässt sich dort abmelden.',
-                      'This device appears in your profile as “$_deviceLabel” and can be signed out there.',
+                    decoration: InputDecoration(
+                      labelText: tr('Adresse deiner Bortle-Instanz', 'Address of your Bortle install'),
+                      hintText: 'https://bortle.example.org',
                     ),
-                    style: TextStyle(color: tones.muted, fontSize: 13),
+                    onChanged: (_) => setState(() => _info = null),
+                    onSubmitted: (_) => _check(),
                   ),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton(onPressed: _busy ? null : _check, child: Text(tr('Prüfen', 'Check'))),
+                  ),
+                  if (isInsecureOutsideHome(_url))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Text(
+                        tr(
+                          'Achtung: http ohne Verschlüsselung außerhalb des Heimnetzes – Passwort und Zugang gingen lesbar übers Netz.',
+                          'Careful: plain http outside a home network – password and access would cross the net readable.',
+                        ),
+                        style: TextStyle(color: tones.warn),
+                      ),
+                    ),
                 ],
+                if (ready) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle_outline, color: tones.good, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          info.needsLogin
+                              ? tr('Bortle ${info.version} gefunden', 'Found Bortle ${info.version}')
+                              : tr(
+                                  'Bortle ${info.version} im lokalen Modus – keine Anmeldung nötig',
+                                  'Bortle ${info.version} in local mode – no sign-in needed',
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (info.needsLogin) ...[
+                    const SizedBox(height: 16),
+                    TextField(
+                      key: const Key('login'),
+                      controller: _login,
+                      autocorrect: false,
+                      keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.email, AutofillHints.username],
+                      decoration: InputDecoration(labelText: tr('E-Mail oder Name', 'Email or name')),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      key: const Key('password'),
+                      controller: _password,
+                      obscureText: true,
+                      autofillHints: const [AutofillHints.password],
+                      decoration: InputDecoration(labelText: tr('Passwort', 'Password')),
+                      onSubmitted: (_) => _signIn(),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      tr(
+                        'Dieses Gerät erscheint im Profil als „$_deviceLabel“ und lässt sich dort abmelden.',
+                        'This device appears in your profile as “$_deviceLabel” and can be signed out there.',
+                      ),
+                      style: TextStyle(color: tones.muted, fontSize: 13),
+                    ),
+                  ],
+                ],
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Text(_error!, style: TextStyle(color: tones.danger)),
+                  ),
+                const SizedBox(height: 28),
+                FilledButton(
+                  key: const Key('sign-in'),
+                  onPressed: ready && !_busy ? _signIn : null,
+                  child: _busy
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(info != null && !info.needsLogin ? tr('Verbinden', 'Connect') : tr('Anmelden', 'Sign in')),
+                ),
+                const SizedBox(height: 28),
+                const Divider(),
+                const SizedBox(height: 8),
+                Text(
+                  tr(
+                    'Ohne Konto: Dämmerung und Mond, wie hoch ein Objekt heute steigt, der Optik-Rechner und das Wetter für die Nacht.',
+                    'Without an account: twilight and the moon, how high an object climbs tonight, the optics calculator and the night’s weather.',
+                  ),
+                  style: TextStyle(color: tones.muted, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const Key('tools'),
+                  icon: const Icon(Icons.nights_stay_outlined),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ToolsScreen())),
+                  label: Text(tr('Werkzeuge für die Nacht', 'Tools for the night')),
+                ),
               ],
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Text(_error!, style: TextStyle(color: tones.danger)),
-                ),
-              const SizedBox(height: 28),
-              FilledButton(
-                key: const Key('sign-in'),
-                onPressed: ready && !_busy ? _signIn : null,
-                child: _busy
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text(info != null && !info.needsLogin ? tr('Verbinden', 'Connect') : tr('Anmelden', 'Sign in')),
-              ),
-              const SizedBox(height: 28),
-              const Divider(),
-              const SizedBox(height: 8),
-              Text(
-                tr(
-                  'Ohne Konto: Dämmerung und Mond, wie hoch ein Objekt heute steigt, der Optik-Rechner und das Wetter für die Nacht.',
-                  'Without an account: twilight and the moon, how high an object climbs tonight, the optics calculator and the night’s weather.',
-                ),
-                style: TextStyle(color: tones.muted, fontSize: 13),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                key: const Key('tools'),
-                icon: const Icon(Icons.nights_stay_outlined),
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ToolsScreen())),
-                label: Text(tr('Werkzeuge für die Nacht', 'Tools for the night')),
-              ),
-            ],
+            ),
           ),
         ),
       ),

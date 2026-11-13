@@ -11,6 +11,7 @@ import '../api/models.dart';
 import '../api/recipes.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../layout.dart';
 import '../params.dart';
 import '../widgets.dart';
 import 'run_screen.dart';
@@ -119,125 +120,128 @@ class _HoldScreenState extends State<HoldScreen> {
           }
           final hold = p.hold;
           final atStep = p.waiting && hold?.point == 'steps';
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text(
-                p.waiting
-                    ? tr('Wartet auf dich · ${_point(hold!.point)}', 'Waiting for you · ${_point(hold.point)}')
-                    : tr('Status: ${p.state}', 'State: ${p.state}'),
-                style: TextStyle(color: p.waiting ? tones.warn : tones.muted, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              Text(p.subject, style: Theme.of(context).textTheme.headlineSmall),
-              if (hold != null && (hold.findings.isNotEmpty || hold.point != 'steps')) ...[
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          tr('Was Bortle gefunden hat', 'What Bortle found'),
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        if (hold.findings.isEmpty) ...[const SizedBox(height: 8), Text(hold.reason)],
-                        for (final f in hold.findings)
-                          Padding(padding: const EdgeInsets.only(top: 6), child: Text('• ${_finding(f)}')),
-                        const SizedBox(height: 8),
-                        _PointDetails(
-                          hold: hold,
-                          client: widget.client,
-                          recipes: _recipes,
-                          onRecipe: (key, recipe, original) => setState(() {
-                            if (recipe == original) {
-                              _recipes.remove(key);
-                            } else {
-                              _recipes[key] = recipe;
-                            }
-                          }),
-                        ),
-                      ],
+          return Readable(
+            base: const EdgeInsets.all(16),
+            builder: (context, padding) => ListView(
+              padding: padding,
+              children: [
+                Text(
+                  p.waiting
+                      ? tr('Wartet auf dich · ${_point(hold!.point)}', 'Waiting for you · ${_point(hold.point)}')
+                      : tr('Status: ${p.state}', 'State: ${p.state}'),
+                  style: TextStyle(color: p.waiting ? tones.warn : tones.muted, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(p.subject, style: Theme.of(context).textTheme.headlineSmall),
+                if (hold != null && (hold.findings.isNotEmpty || hold.point != 'steps')) ...[
+                  const SizedBox(height: 16),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tr('Was Bortle gefunden hat', 'What Bortle found'),
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          if (hold.findings.isEmpty) ...[const SizedBox(height: 8), Text(hold.reason)],
+                          for (final f in hold.findings)
+                            Padding(padding: const EdgeInsets.only(top: 6), child: Text('• ${_finding(f)}')),
+                          const SizedBox(height: 8),
+                          _PointDetails(
+                            hold: hold,
+                            client: widget.client,
+                            recipes: _recipes,
+                            onRecipe: (key, recipe, original) => setState(() {
+                              if (recipe == original) {
+                                _recipes.remove(key);
+                              } else {
+                                _recipes[key] = recipe;
+                              }
+                            }),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-              if (hold != null && hold.point == 'steps')
-                _StepHold(
-                  client: widget.client,
-                  details: hold.details,
-                  values: _stepValues,
-                  onChanged: (param, value) => setState(() => _stepValues[param] = value),
-                ),
-              for (final r in p.runs)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.receipt_long_outlined),
-                  title: Text(r, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(tr('Protokoll des Laufs', 'Run log')),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => RunScreen(client: widget.client, name: r),
+                ],
+                if (hold != null && hold.point == 'steps')
+                  _StepHold(
+                    client: widget.client,
+                    details: hold.details,
+                    values: _stepValues,
+                    onChanged: (param, value) => setState(() => _stepValues[param] = value),
+                  ),
+                for (final r in p.runs)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.receipt_long_outlined),
+                    title: Text(r, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(tr('Protokoll des Laufs', 'Run log')),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => RunScreen(client: widget.client, name: r),
+                      ),
                     ),
                   ),
-                ),
-              if (p.waiting) ...[
-                const SizedBox(height: 16),
-                if (atStep && _stepValues.isNotEmpty) ...[
-                  FilledButton.icon(
-                    key: const Key('redo'),
-                    icon: const Icon(Icons.replay),
+                if (p.waiting) ...[
+                  const SizedBox(height: 16),
+                  if (atStep && _stepValues.isNotEmpty) ...[
+                    FilledButton.icon(
+                      key: const Key('redo'),
+                      icon: const Icon(Icons.replay),
+                      onPressed: _busy
+                          ? null
+                          : () => _answer(
+                              () => widget.client.approve(p.id, changes: _changes(hold!, redo: true)),
+                              tr('Der Schritt läuft mit deinen Werten neu.', 'The step runs again with your values.'),
+                            ),
+                      label: Text(tr('Schritt mit diesen Werten wiederholen', 'Repeat the step with these values')),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  FilledButton.tonal(
+                    key: const Key('approve'),
                     onPressed: _busy
                         ? null
                         : () => _answer(
-                            () => widget.client.approve(p.id, changes: _changes(hold!, redo: true)),
-                            tr('Der Schritt läuft mit deinen Werten neu.', 'The step runs again with your values.'),
+                            () => widget.client.approve(p.id, changes: _changes(hold!, redo: false)),
+                            tr('Freigegeben – Bortle macht weiter.', 'Approved – Bortle carries on.'),
                           ),
-                    label: Text(tr('Schritt mit diesen Werten wiederholen', 'Repeat the step with these values')),
+                    child: Text(switch (hold?.point) {
+                      'steps' => tr('Weiter mit dem nächsten Schritt', 'Carry on with the next step'),
+                      'gallery' => tr('In die Galerie übernehmen', 'Take into the gallery'),
+                      _ =>
+                        _recipes.isEmpty
+                            ? tr('Weiter entwickeln', 'Carry on')
+                            : tr('Mit diesen Rezepten weiter', 'Carry on with these recipes'),
+                    }),
                   ),
                   const SizedBox(height: 10),
+                  OutlinedButton(
+                    key: const Key('cancel'),
+                    onPressed: _busy
+                        ? null
+                        : () async {
+                            final ok = await confirm(
+                              context,
+                              tr('Lauf abbrechen?', 'Stop this run?'),
+                              tr(
+                                'Der Lauf endet endgültig. Was er schon erzeugt hat, bleibt unter Läufe, wird aber nicht veröffentlicht.',
+                                'The run ends for good. What it produced stays under Runs, unpublished.',
+                              ),
+                              tr('Abbrechen', 'Stop'),
+                            );
+                            if (ok) {
+                              await _answer(() => widget.client.cancel(p.id), tr('Abgebrochen.', 'Stopped.'));
+                            }
+                          },
+                    child: Text(tr('Abbrechen …', 'Stop …'), style: TextStyle(color: tones.danger)),
+                  ),
                 ],
-                FilledButton.tonal(
-                  key: const Key('approve'),
-                  onPressed: _busy
-                      ? null
-                      : () => _answer(
-                          () => widget.client.approve(p.id, changes: _changes(hold!, redo: false)),
-                          tr('Freigegeben – Bortle macht weiter.', 'Approved – Bortle carries on.'),
-                        ),
-                  child: Text(switch (hold?.point) {
-                    'steps' => tr('Weiter mit dem nächsten Schritt', 'Carry on with the next step'),
-                    'gallery' => tr('In die Galerie übernehmen', 'Take into the gallery'),
-                    _ =>
-                      _recipes.isEmpty
-                          ? tr('Weiter entwickeln', 'Carry on')
-                          : tr('Mit diesen Rezepten weiter', 'Carry on with these recipes'),
-                  }),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton(
-                  key: const Key('cancel'),
-                  onPressed: _busy
-                      ? null
-                      : () async {
-                          final ok = await confirm(
-                            context,
-                            tr('Lauf abbrechen?', 'Stop this run?'),
-                            tr(
-                              'Der Lauf endet endgültig. Was er schon erzeugt hat, bleibt unter Läufe, wird aber nicht veröffentlicht.',
-                              'The run ends for good. What it produced stays under Runs, unpublished.',
-                            ),
-                            tr('Abbrechen', 'Stop'),
-                          );
-                          if (ok) {
-                            await _answer(() => widget.client.cancel(p.id), tr('Abgebrochen.', 'Stopped.'));
-                          }
-                        },
-                  child: Text(tr('Abbrechen …', 'Stop …'), style: TextStyle(color: tones.danger)),
-                ),
               ],
-            ],
+            ),
           );
         },
       ),
