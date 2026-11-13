@@ -421,7 +421,7 @@ class FakeServer {
         return json({'loaded': true});
       case ('GET', '/api/bortle/nina/live'):
         return ninaUp
-            ? json(liveSnapshot)
+            ? json(_live())
             : http.Response(fixture('live_unreachable.json'), 200, headers: {'content-type': 'application/json'});
       case ('GET', '/api/bortle/nina/frames'):
         return json({
@@ -702,6 +702,35 @@ class FakeServer {
   final nudges = <Map<String, Object?>>[];
   int tppaPolls = 0;
   bool tppaAvailable = true;
+
+  /// Devices the live snapshot reports as not connected.
+  final disconnected = <String>{};
+
+  /// A rotator with a driver chosen (shows the rotator page).
+  bool hasRotator = false;
+
+  /// Whether /nina/profile/settings answers.
+  bool profileSettings = true;
+  int profileReads = 0;
+
+  Map<String, Object?> _live() {
+    final devices = {...(liveSnapshot['devices'] as Map)};
+    for (final d in disconnected) {
+      devices[d] = {...(devices[d] as Map), 'connected': false};
+    }
+    if (hasRotator) {
+      devices['rotator'] = {
+        ...(devices['rotator'] as Map),
+        'connected': true,
+        'Name': 'Pegasus Falcon',
+        'Position': 92.5,
+        'MechanicalPosition': 92.5,
+        'IsMoving': false,
+      };
+    }
+    return {...liveSnapshot, 'devices': devices};
+  }
+
   bool tppaRunning = false;
 
   /// NINA's own fields per device, as /nina/live passes them through.
@@ -716,7 +745,18 @@ class FakeServer {
       'GainMax': 10000,
       'IsExposing': false,
     },
-    'mount': {'AtPark': false, 'Slewing': false, 'TrackingEnabled': true, 'Altitude': 61.2, 'TimeToMeridianFlip': 1.5},
+    'mount': {
+      'AtPark': false,
+      'Slewing': false,
+      'TrackingEnabled': true,
+      'TrackingMode': 'Sidereal',
+      'Altitude': 61.2,
+      'TimeToMeridianFlip': 1.5,
+      'TimeToMeridianFlipString': '01:30:00',
+      'SideOfPier': 'pierWest',
+      'CanFindHome': true,
+      'CanSlew': true,
+    },
     'focuser': {'Position': 8150, 'IsMoving': false, 'Temperature': 3.1},
   };
 
@@ -807,6 +847,50 @@ class FakeServer {
         });
       case ('GET', '/api/bortle/nina/capture'):
         return http.Response.bytes(_png, 200, headers: {'content-type': 'image/png'});
+      // shaped like nina_live.profile_settings_view: the flip sits in the "safety" group
+      case ('GET', '/api/bortle/nina/profile/settings'):
+        profileReads++;
+        if (!profileSettings) return json({'detail': 'NINA: profile not readable (profile)'}, 502);
+        return json({
+          'profile': {'id': 'p', 'name': 'Epsilon 160'},
+          'groups': [
+            {
+              'key': 'guider',
+              'label': 'Guiding',
+              'settings': [
+                {'path': 'GuiderSettings-SettleTime', 'label': 'Beruhigungszeit', 'type': 'int', 'value': 20},
+              ],
+            },
+            {
+              'key': 'safety',
+              'label': 'Meridian-Flip und Sicherheit',
+              'settings': [
+                {
+                  'path': 'SequenceSettings-DoMeridianFlip',
+                  'label': 'Meridian-Flip aktiv',
+                  'type': 'bool',
+                  'value': true,
+                  'editable': false,
+                },
+                {
+                  'path': 'MeridianFlipSettings-MinutesAfterMeridian',
+                  'label': 'Flip nach Meridian',
+                  'type': 'float',
+                  'value': 5.0,
+                  'unit': 'min',
+                  'editable': false,
+                },
+                {
+                  'path': 'SequenceSettings-ParkMountAtSequenceEnd',
+                  'label': 'Montierung am Sequenzende parken',
+                  'type': 'bool',
+                  'value': true,
+                  'editable': false,
+                },
+              ],
+            },
+          ],
+        });
       case ('POST', '/api/bortle/nina/nudge'):
         nudges.add((jsonDecode(request.body) as Map).cast<String, Object?>());
         return json({'step': {}, 'result': 'ok'});
