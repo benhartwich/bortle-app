@@ -3,6 +3,9 @@
 //
 // Only the operator: the instance's NINA is theirs (the cockpit answers 403 to anyone
 // else). Polls while the tab is on screen, never in the background.
+//
+// On a tablet on its side the overview – live frame and status – stays on the left and
+// the frames, the history or the controls sit beside it.
 
 import 'dart:async';
 import 'dart:typed_data';
@@ -15,6 +18,7 @@ import '../api/session_store.dart';
 import '../charts.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../layout.dart';
 import '../nav/sky_and_framing.dart';
 import '../framing/framing_screen.dart';
 import '../rig/rig_control.dart';
@@ -54,10 +58,18 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
   /// The review account: a recorded night to look at, nothing to control.
   bool get _demo => !_operator && widget.me!.demo;
 
+  // Under keys of their own so turning the tablet keeps the live frame and the rig's
+  // session rather than starting them over.
+  final _overviewKey = GlobalKey(debugLabel: 'overview');
+  final _rigKey = GlobalKey(debugLabel: 'rig');
+
   @override
   Widget build(BuildContext context) {
     final tones = context.tones;
     final views = _operator || _demo;
+    final twoPane = views && context.twoPane;
+    // two panes: the overview is always on the left, the right one shows the rest
+    final shown = twoPane && _view == _View.overview ? _View.control : _view;
     return Scaffold(
       appBar: AppBar(
         title: Text(tr('Teleskop', 'Telescope')),
@@ -83,12 +95,12 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
                           ?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                     segments: [
-                      ButtonSegment(value: _View.overview, label: Text(tr('Übersicht', 'Overview'))),
+                      if (!twoPane) ButtonSegment(value: _View.overview, label: Text(tr('Übersicht', 'Overview'))),
                       ButtonSegment(value: _View.frames, label: Text(tr('Bilder', 'Frames'))),
                       ButtonSegment(value: _View.history, label: Text(tr('Verlauf', 'History'))),
                       ButtonSegment(value: _View.control, label: Text(tr('Steuern', 'Control'))),
                     ],
-                    selected: {_view},
+                    selected: {shown},
                     onSelectionChanged: (s) => setState(() => _view = s.first),
                   ),
                 ),
@@ -112,14 +124,27 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
           : Column(
               children: [
                 if (_demo) const _RecordedBanner(),
-                Expanded(child: _body(tones)),
+                Expanded(
+                  child: !twoPane
+                      ? _body(tones, shown)
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(flex: 4, child: _overview()),
+                            VerticalDivider(width: 1, thickness: 1, color: tones.line),
+                            Expanded(flex: 5, child: _body(tones, shown, sideBar: true)),
+                          ],
+                        ),
+                ),
               ],
             ),
     );
   }
 
-  Widget _body(Tones tones) => switch (_view) {
-    _View.overview => _Overview(client: widget.client, active: widget.active, readOnly: _demo),
+  Widget _overview() => _Overview(key: _overviewKey, client: widget.client, active: widget.active, readOnly: _demo);
+
+  Widget _body(Tones tones, _View view, {bool sideBar = false}) => switch (view) {
+    _View.overview => _overview(),
     _View.frames => _Frames(client: widget.client),
     _View.history => _History(client: widget.client),
     _View.control when _demo => Center(
@@ -136,6 +161,8 @@ class _TelescopeScreenState extends State<TelescopeScreen> {
       ),
     ),
     _View.control => RigControl(
+      key: _rigKey,
+      sideBar: sideBar,
       client: widget.client,
       active: widget.active,
       store: widget.store,
@@ -168,7 +195,7 @@ class _RecordedBanner extends StatelessWidget {
 // --- overview ----------------------------------------------------------------------
 
 class _Overview extends StatefulWidget {
-  const _Overview({required this.client, required this.active, this.readOnly = false});
+  const _Overview({required this.client, required this.active, this.readOnly = false, super.key});
 
   final BortleClient client;
   final bool active;

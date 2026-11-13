@@ -4,7 +4,8 @@
 // of them, and safety (park on loss, aborts, meridian flip) stays NINA's.
 //
 // Laid out like Touch'N'Stars: a strip of devices on top (lib/rig/device_bar.dart), the
-// page of the one chosen below it (lib/rig/pages/), remembered across visits. What the
+// page of the one chosen below it (lib/rig/pages/), remembered across visits. On a tablet
+// on its side the strip becomes a column on the left of the page. What the
 // pages share – the live snapshot, the one action running, how an action asks and runs –
 // is lib/rig/rig_session.dart.
 
@@ -37,7 +38,18 @@ export 'pages/mount_page.dart' show FrameCallback;
 const rigPageKey = 'rig_page';
 
 class RigControl extends StatefulWidget {
-  const RigControl({required this.client, required this.active, this.store, this.onFrame, super.key});
+  const RigControl({
+    required this.client,
+    required this.active,
+    this.store,
+    this.onFrame,
+    this.sideBar = false,
+    super.key,
+  });
+
+  /// The devices down the left of the page rather than across its top: a tablet on its
+  /// side has the width and not the height.
+  final bool sideBar;
 
   final BortleClient client;
 
@@ -138,39 +150,51 @@ class _RigControlState extends State<RigControl> {
     }
     // a rotator or flat panel that went away takes its page with it
     final page = _page.shownFor(rig) ? _page : RigPage.devices;
+    final bar = RigDeviceBar(
+      rig: rig,
+      selected: page,
+      onSelect: _select,
+      vertical: widget.sideBar,
+      trailing: PopupMenuButton<String>(
+        key: const Key('rig-more'),
+        tooltip: tr('Mehr', 'More'),
+        icon: const Icon(Icons.more_vert),
+        onSelected: (choice) => switch (choice) {
+          'open' => _touchNStars.open(context),
+          _ => _touchNStars.edit(context),
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            key: const Key('menu-touchnstars'),
+            value: 'open',
+            child: Text(tr('Touch’N’Stars öffnen', 'Open Touch’N’Stars')),
+          ),
+          PopupMenuItem(
+            key: const Key('menu-touchnstars-address'),
+            value: 'address',
+            child: Text(tr('Touch’N’Stars-Adresse …', 'Touch’N’Stars address …')),
+          ),
+        ],
+      ),
+    );
+    final shown = KeyedSubtree(key: ValueKey(page), child: _pageFor(page, rig));
+    if (widget.sideBar) {
+      return Row(
+        key: const Key('rig-control'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          bar,
+          VerticalDivider(width: 1, thickness: 1, color: tones.line),
+          Expanded(child: shown),
+        ],
+      );
+    }
     return Column(
       key: const Key('rig-control'),
       children: [
-        RigDeviceBar(
-          rig: rig,
-          selected: page,
-          onSelect: _select,
-          trailing: PopupMenuButton<String>(
-            key: const Key('rig-more'),
-            tooltip: tr('Mehr', 'More'),
-            icon: const Icon(Icons.more_vert),
-            onSelected: (choice) => switch (choice) {
-              'open' => _touchNStars.open(context),
-              _ => _touchNStars.edit(context),
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                key: const Key('menu-touchnstars'),
-                value: 'open',
-                child: Text(tr('Touch’N’Stars öffnen', 'Open Touch’N’Stars')),
-              ),
-              PopupMenuItem(
-                key: const Key('menu-touchnstars-address'),
-                value: 'address',
-                child: Text(tr('Touch’N’Stars-Adresse …', 'Touch’N’Stars address …')),
-              ),
-            ],
-          ),
-        ),
+        bar,
         Divider(height: 1, color: tones.line),
-        Expanded(
-          child: KeyedSubtree(key: ValueKey(page), child: _pageFor(page, rig)),
-        ),
+        Expanded(child: shown),
       ],
     );
   }

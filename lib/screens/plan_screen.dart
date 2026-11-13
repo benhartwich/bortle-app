@@ -1,5 +1,7 @@
 // "Planen": an object, its altitude over the night at the account's site, moon and clouds,
 // then the sequence to NINA with the develop level for when the night ends.
+// On a phone the chosen object takes the recommendations' place; on a tablet on its side
+// the recommendations stay on the left and the object opens beside them.
 
 import 'package:material_ui/material_ui.dart';
 
@@ -8,6 +10,7 @@ import '../api/models.dart';
 import '../charts.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../layout.dart';
 import '../nav/sky_and_framing.dart';
 import '../object_preview.dart';
 import '../plan/recommendation_card.dart';
@@ -371,116 +374,144 @@ class _PlanScreenState extends State<PlanScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(tr('Planen', 'Plan')), actions: [skyMapButton(context, widget.client)]),
-    body: ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Autocomplete<SearchHit>(
-          displayStringForOption: (s) => s.planName,
-          optionsBuilder: (value) => _search(value.text),
-          onSelected: (s) => _pick(s.planName),
-          optionsViewBuilder: (context, onSelected, options) => _SearchResults(options, onSelected),
-          fieldViewBuilder: (context, controller, focus, submit) => TextField(
-            key: const Key('object'),
-            controller: controller,
-            focusNode: focus,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              labelText: tr('Objekt', 'Object'),
-              hintText: tr('z. B. NGC 7000, M31, Rosette', 'e.g. NGC 7000, M31, Rosette'),
-              prefixIcon: const Icon(Icons.search),
-            ),
-            onSubmitted: (text) {
-              if (text.trim().isNotEmpty) _pick(text.trim());
-            },
-          ),
-        ),
-        if (_plan == null) ...[
-          Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Text(
-              tr(
-                'Sichtbarkeit, Mond und Wolken rechnet Bortle für den Standort und Horizont aus deinem Profil.',
-                'Bortle computes visibility, moon and clouds for the site and horizon in your profile.',
+  Widget build(BuildContext context) {
+    final twoPane = context.twoPane;
+    final plan = _plan == null ? null : _chosenPlan();
+    return Scaffold(
+      appBar: AppBar(title: Text(tr('Planen', 'Plan')), actions: [skyMapButton(context, widget.client)]),
+      body: !twoPane
+          ? ListView(
+              padding: const EdgeInsets.all(16),
+              children: [_searchField(), if (plan == null) ..._recommendations() else plan],
+            )
+          : TwoPane(
+              listWidth: 440,
+              list: ListView(
+                key: const Key('plan-list'),
+                padding: const EdgeInsets.all(16),
+                children: [_searchField(), ..._recommendations()],
               ),
-              style: TextStyle(color: context.tones.muted),
-            ),
-          ),
-          SectionTitle(tr('Empfehlungen', 'Recommendations')),
-          _nightSelector(),
-          if (_night > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                tr(
-                  'Wolken aus der Vorhersage – je weiter voraus, desto unsicherer. Dunkelheit, Mond und Höhen stimmen genau.',
-                  'Clouds from the forecast – the further ahead, the less certain. Darkness, moon and altitudes are exact.',
-                ),
-                key: const Key('forecast-hint'),
-                style: TextStyle(color: context.tones.muted, fontSize: 12),
-              ),
-            ),
-          const SizedBox(height: 8),
-          FutureBuilder<RecommendedNight?>(
-            future: _recommended,
-            builder: (context, snap) {
-              if (snap.connectionState != ConnectionState.done) return const LinearProgressIndicator();
-              final night = snap.data;
-              if (night == null) return _siteChoice();
-              if (night.targets.isEmpty) {
-                return Text(
-                  tr('Für diese Nacht keine Empfehlungen.', 'No recommendations for this night.'),
-                  style: TextStyle(color: context.tones.muted),
-                );
-              }
-              final usable = night.targets.where((r) => r.visibleHours > 0).toList();
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (night.nightStart != null && night.nightEnd != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        tr(
-                          'Astronomisch dunkel ${timeRange(night.nightStart, night.nightEnd)} · ${decimal(night.darkHours, 1)} h',
-                          'Astronomically dark ${timeRange(night.nightStart, night.nightEnd)} · ${decimal(night.darkHours, 1)} h',
-                        ),
-                        key: const Key('night-span'),
-                        style: TextStyle(color: context.tones.muted, fontSize: 13),
+              detail: plan == null
+                  ? NothingChosen(
+                      icon: Icons.event_outlined,
+                      text: tr(
+                        'Wähle links eine Empfehlung oder suche ein Objekt – Höhe, Bildfeld und die Sequenz für NINA erscheinen hier.',
+                        'Choose a recommendation on the left or search for an object – altitude, field and the sequence for NINA appear here.',
                       ),
+                    )
+                  : Readable(
+                      base: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      builder: (context, padding) =>
+                          ListView(key: const Key('plan-detail'), padding: padding, children: [plan]),
                     ),
-                  if (usable.isEmpty) _nothingUsable(night),
-                  for (final r in usable.isEmpty ? night.targets : usable)
-                    RecommendationCard(
-                      target: r,
-                      client: widget.client,
-                      fovArcmin: night.fovArcmin,
-                      onTap: () => _pick(r.name, from: r),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
-        if (_plan != null)
-          FutureBuilder<NightPlan>(
-            future: _plan,
-            builder: (context, snap) {
-              if (snap.hasError && BortleClient.isNoSite(snap.error!)) return _withoutSite(context, _object!);
-              if (snap.hasError) return LoadError(snap.error!, onRetry: () => _pick(_object!));
-              final plan = snap.data;
-              if (plan == null) {
-                return const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              return _planView(context, plan);
-            },
-          ),
-      ],
+            ),
+    );
+  }
+
+  Widget _searchField() => Autocomplete<SearchHit>(
+    displayStringForOption: (s) => s.planName,
+    optionsBuilder: (value) => _search(value.text),
+    onSelected: (s) => _pick(s.planName),
+    optionsViewBuilder: (context, onSelected, options) => _SearchResults(options, onSelected),
+    fieldViewBuilder: (context, controller, focus, submit) => TextField(
+      key: const Key('object'),
+      controller: controller,
+      focusNode: focus,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        labelText: tr('Objekt', 'Object'),
+        hintText: tr('z. B. NGC 7000, M31, Rosette', 'e.g. NGC 7000, M31, Rosette'),
+        prefixIcon: const Icon(Icons.search),
+      ),
+      onSubmitted: (text) {
+        if (text.trim().isNotEmpty) _pick(text.trim());
+      },
     ),
+  );
+
+  List<Widget> _recommendations() => [
+    Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Text(
+        tr(
+          'Sichtbarkeit, Mond und Wolken rechnet Bortle für den Standort und Horizont aus deinem Profil.',
+          'Bortle computes visibility, moon and clouds for the site and horizon in your profile.',
+        ),
+        style: TextStyle(color: context.tones.muted),
+      ),
+    ),
+    SectionTitle(tr('Empfehlungen', 'Recommendations')),
+    _nightSelector(),
+    if (_night > 0)
+      Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Text(
+          tr(
+            'Wolken aus der Vorhersage – je weiter voraus, desto unsicherer. Dunkelheit, Mond und Höhen stimmen genau.',
+            'Clouds from the forecast – the further ahead, the less certain. Darkness, moon and altitudes are exact.',
+          ),
+          key: const Key('forecast-hint'),
+          style: TextStyle(color: context.tones.muted, fontSize: 12),
+        ),
+      ),
+    const SizedBox(height: 8),
+    FutureBuilder<RecommendedNight?>(
+      future: _recommended,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) return const LinearProgressIndicator();
+        final night = snap.data;
+        if (night == null) return _siteChoice();
+        if (night.targets.isEmpty) {
+          return Text(
+            tr('Für diese Nacht keine Empfehlungen.', 'No recommendations for this night.'),
+            style: TextStyle(color: context.tones.muted),
+          );
+        }
+        final usable = night.targets.where((r) => r.visibleHours > 0).toList();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (night.nightStart != null && night.nightEnd != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  tr(
+                    'Astronomisch dunkel ${timeRange(night.nightStart, night.nightEnd)} · ${decimal(night.darkHours, 1)} h',
+                    'Astronomically dark ${timeRange(night.nightStart, night.nightEnd)} · ${decimal(night.darkHours, 1)} h',
+                  ),
+                  key: const Key('night-span'),
+                  style: TextStyle(color: context.tones.muted, fontSize: 13),
+                ),
+              ),
+            if (usable.isEmpty) _nothingUsable(night),
+            for (final r in usable.isEmpty ? night.targets : usable)
+              RecommendationCard(
+                target: r,
+                client: widget.client,
+                fovArcmin: night.fovArcmin,
+                selected: context.twoPane && r.name == _object,
+                onTap: () => _pick(r.name, from: r),
+              ),
+          ],
+        );
+      },
+    ),
+  ];
+
+  Widget _chosenPlan() => FutureBuilder<NightPlan>(
+    future: _plan,
+    builder: (context, snap) {
+      if (snap.hasError && BortleClient.isNoSite(snap.error!)) return _withoutSite(context, _object!);
+      if (snap.hasError) return LoadError(snap.error!, onRetry: () => _pick(_object!));
+      final plan = snap.data;
+      if (plan == null) {
+        return const Padding(
+          padding: EdgeInsets.all(32),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+      return _planView(context, plan);
+    },
   );
 
   Widget _planView(BuildContext context, NightPlan plan) {

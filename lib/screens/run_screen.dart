@@ -10,6 +10,7 @@ import '../api/models.dart';
 import '../api/recipes.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../layout.dart';
 import '../params.dart';
 import '../widgets.dart';
 import 'redevelop_screen.dart';
@@ -69,69 +70,75 @@ class _RunScreenState extends State<RunScreen> {
           final running = r.status == 'running';
           return RefreshIndicator(
             onRefresh: () async => _reload(),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  running ? tr('Rechnet', 'Computing') : (r.status ?? ''),
-                  style: TextStyle(color: running ? Theme.of(context).colorScheme.primary : tones.muted),
-                ),
-                Text(r.displayTitle, style: Theme.of(context).textTheme.headlineSmall),
-                Text(tr('Rezept ${r.recipe}', 'Recipe ${r.recipe}'), style: TextStyle(color: tones.muted)),
-                if (running) ...[
-                  const SizedBox(height: 14),
-                  LinearProgressIndicator(value: total > 0 ? done / total : null),
-                  const SizedBox(height: 6),
+            child: Readable(
+              base: const EdgeInsets.all(16),
+              builder: (context, padding) => ListView(
+                padding: padding,
+                children: [
                   Text(
-                    [
-                      if (r.currentOp != null) opLabel(r.currentOp!),
-                      if (total > 0) '$done/$total',
-                      if (r.worker != null) r.worker!,
-                    ].join(' · '),
+                    running ? tr('Rechnet', 'Computing') : (r.status ?? ''),
+                    style: TextStyle(color: running ? Theme.of(context).colorScheme.primary : tones.muted),
                   ),
-                ],
-                if (r.preview != null) ...[
-                  const SizedBox(height: 14),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(Sky.radius),
-                    child: AspectRatio(
-                      aspectRatio: 4 / 3,
-                      child: InteractiveViewer(
-                        maxScale: 6,
-                        child: ServerImage(client: widget.client, path: r.preview!, fit: BoxFit.contain),
+                  Text(r.displayTitle, style: Theme.of(context).textTheme.headlineSmall),
+                  Text(tr('Rezept ${r.recipe}', 'Recipe ${r.recipe}'), style: TextStyle(color: tones.muted)),
+                  if (running) ...[
+                    const SizedBox(height: 14),
+                    LinearProgressIndicator(value: total > 0 ? done / total : null),
+                    const SizedBox(height: 6),
+                    Text(
+                      [
+                        if (r.currentOp != null) opLabel(r.currentOp!),
+                        if (total > 0) '$done/$total',
+                        if (r.worker != null) r.worker!,
+                      ].join(' · '),
+                    ),
+                  ],
+                  if (r.preview != null) ...[
+                    const SizedBox(height: 14),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(Sky.radius),
+                      child: AspectRatio(
+                        aspectRatio: 4 / 3,
+                        child: InteractiveViewer(
+                          maxScale: 6,
+                          child: ServerImage(client: widget.client, path: r.preview!, fit: BoxFit.contain),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-                if (r.status == 'done' && r.steps.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    key: const Key('develop-again'),
-                    icon: const Icon(Icons.tune),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => RedevelopScreen(client: widget.client, run: r),
+                  ],
+                  if (r.status == 'done' && r.steps.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      key: const Key('develop-again'),
+                      icon: const Icon(Icons.tune),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => RedevelopScreen(client: widget.client, run: r),
+                        ),
                       ),
+                      label: Text(tr('Mit eigenen Werten neu entwickeln', 'Develop again with your own values')),
                     ),
-                    label: Text(tr('Mit eigenen Werten neu entwickeln', 'Develop again with your own values')),
+                  ],
+                  SectionTitle(tr('Schritte', 'Steps')),
+                  FutureBuilder<ParamDocs>(
+                    future: _docs,
+                    builder: (context, docsSnap) {
+                      final docs = docsSnap.data ?? ParamDocs.empty;
+                      return Column(
+                        children: [
+                          for (final (i, s) in r.steps.indexed)
+                            _StepTile(client: widget.client, steps: r.steps, index: i, docs: docs, step: s),
+                        ],
+                      );
+                    },
                   ),
+                  if (r.steps.isEmpty)
+                    Text(
+                      tr('Noch kein Schritt fertig.', 'No step finished yet.'),
+                      style: TextStyle(color: tones.muted),
+                    ),
                 ],
-                SectionTitle(tr('Schritte', 'Steps')),
-                FutureBuilder<ParamDocs>(
-                  future: _docs,
-                  builder: (context, docsSnap) {
-                    final docs = docsSnap.data ?? ParamDocs.empty;
-                    return Column(
-                      children: [
-                        for (final (i, s) in r.steps.indexed)
-                          _StepTile(client: widget.client, steps: r.steps, index: i, docs: docs, step: s),
-                      ],
-                    );
-                  },
-                ),
-                if (r.steps.isEmpty)
-                  Text(tr('Noch kein Schritt fertig.', 'No step finished yet.'), style: TextStyle(color: tones.muted)),
-              ],
+              ),
             ),
           );
         },

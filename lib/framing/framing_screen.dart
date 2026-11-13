@@ -22,6 +22,7 @@ import '../api/bortle_client.dart';
 import '../api/models.dart';
 import '../design.dart';
 import '../l10n.dart';
+import '../layout.dart';
 import '../rig/rig_models.dart';
 import '../widgets.dart';
 import 'framing_math.dart';
@@ -353,37 +354,61 @@ class _FramingScreenState extends State<FramingScreen> {
   @override
   Widget build(BuildContext context) {
     final tones = context.tones;
+    final picture = [
+      _pictureCard(context),
+      const SizedBox(height: 8),
+      if (_ra != null && _dec != null)
+        Text(
+          '${formatRa(_ra!)}  ${formatDec(_dec!)}  ·  ${_rotation.round()}°  (J2000)',
+          key: const Key('framing-coords'),
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()], fontWeight: FontWeight.w600),
+        ),
+    ];
+    final controls = [
+      _rotationCard(context),
+      const SizedBox(height: 12),
+      _nudgeCard(context),
+      const SizedBox(height: 12),
+      _actionsCard(context),
+      if (_message != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Text(
+            _message!,
+            key: const Key('framing-message'),
+            style: TextStyle(color: _messageIsError ? tones.danger : tones.good),
+          ),
+        ),
+    ];
+    final size = MediaQuery.sizeOf(context);
+    final title = Text(tr('Einrahmen · ${widget.target}', 'Framing · ${widget.target}'));
+    // On its side, a tablet or a phone has the width: the sky picture fills the left and
+    // the controls stay beside it instead of below the fold.
+    if (size.width >= mediumMinWidth && size.width > size.height) {
+      return Scaffold(
+        appBar: AppBar(title: title),
+        body: Row(
+          key: const Key('framing'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ListView(padding: const EdgeInsets.fromLTRB(12, 8, 6, 32), children: picture),
+            ),
+            SizedBox(
+              width: (size.width * .4).clamp(320, 440),
+              child: ListView(padding: const EdgeInsets.fromLTRB(6, 8, 12, 32), children: controls),
+            ),
+          ],
+        ),
+      );
+    }
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Einrahmen · ${widget.target}', 'Framing · ${widget.target}'))),
+      appBar: AppBar(title: title),
       body: ListView(
         key: const Key('framing'),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 32),
-        children: [
-          _pictureCard(context),
-          const SizedBox(height: 8),
-          if (_ra != null && _dec != null)
-            Text(
-              '${formatRa(_ra!)}  ${formatDec(_dec!)}  ·  ${_rotation.round()}°  (J2000)',
-              key: const Key('framing-coords'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()], fontWeight: FontWeight.w600),
-            ),
-          const SizedBox(height: 12),
-          _rotationCard(context),
-          const SizedBox(height: 12),
-          _nudgeCard(context),
-          const SizedBox(height: 12),
-          _actionsCard(context),
-          if (_message != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                _message!,
-                key: const Key('framing-message'),
-                style: TextStyle(color: _messageIsError ? tones.danger : tones.good),
-              ),
-            ),
-        ],
+        children: [...picture, const SizedBox(height: 12), ...controls],
       ),
     );
   }

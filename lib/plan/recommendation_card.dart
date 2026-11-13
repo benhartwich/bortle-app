@@ -20,8 +20,12 @@ class RecommendationCard extends StatelessWidget {
     required this.client,
     required this.onTap,
     this.fovArcmin,
+    this.selected = false,
     super.key,
   });
+
+  /// The one open beside the list on a tablet.
+  final bool selected;
 
   final Recommendation target;
   final BortleClient client;
@@ -39,6 +43,12 @@ class RecommendationCard extends StatelessWidget {
     final blocked = r.visibleHours <= 0;
     return Card(
       clipBehavior: Clip.antiAlias,
+      shape: selected
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(Sky.radius),
+              side: BorderSide(color: primary, width: 2),
+            )
+          : null,
       child: InkWell(
         key: Key('rec-${r.name}'),
         onTap: onTap,

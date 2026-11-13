@@ -8,6 +8,7 @@ import '../api/models.dart';
 import '../design.dart';
 import '../events.dart';
 import '../l10n.dart';
+import '../layout.dart';
 import '../widgets.dart';
 import 'develop_screen.dart';
 import 'hold_screen.dart';
@@ -94,126 +95,134 @@ class _TodayScreenState extends State<TodayScreen> {
             if (d == null) {
               return const Center(child: CircularProgressIndicator());
             }
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              children: [
-                for (final p in d.waiting)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(Sky.radius),
-                        side: BorderSide(color: tones.warn),
-                      ),
-                      child: ListTile(
-                        leading: Icon(Icons.pending_actions_outlined, color: tones.warn),
-                        title: Text(tr('Wartet auf dich: ${p.subject}', 'Waiting for you: ${p.subject}')),
-                        subtitle: Text(p.hold?.reason ?? ''),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _open(HoldScreen(client: widget.client, pipelineId: p.id)),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _Tile(
-                        label: tr('Nacht', 'Night'),
-                        value: d.night.activeSession == null
-                            ? tr('Keine aktiv', 'None active')
-                            : tr('Läuft', 'Running'),
-                        color: d.night.activeSession == null ? null : tones.good,
-                        detail: d.night.activeSession,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _Tile(
-                        label: tr('Läufe', 'Runs'),
-                        value: d.running.isEmpty
-                            ? tr('Keiner rechnet', 'None computing')
-                            : tr('${d.running.length} rechnen', '${d.running.length} computing'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  key: const Key('new-develop'),
-                  icon: const Icon(Icons.add_photo_alternate_outlined),
-                  onPressed: () => _open(DevelopScreen(client: widget.client)),
-                  label: Text(tr('Neue Entwicklung', 'New develop')),
-                ),
-                if (d.running.isNotEmpty) SectionTitle(tr('Entwicklung läuft', 'Developing')),
-                for (final r in d.running)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Card(
-                      child: ListTile(
-                        title: Text(r.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 6),
-                            LinearProgressIndicator(value: r.progress),
-                            const SizedBox(height: 6),
-                            Text(
-                              [
-                                if (r.currentOp != null) opLabel(r.currentOp!),
-                                if (r.totalSteps > 0) '${r.stepsDone}/${r.totalSteps}',
-                                if (r.eta != null) tr('noch ~${duration(r.eta!)}', '~${duration(r.eta!)} left'),
-                              ].join(' · '),
-                            ),
-                          ],
+            return Readable(
+              maxWidth: 840,
+              base: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              builder: (context, padding) => ListView(
+                padding: padding,
+                children: [
+                  for (final p in d.waiting)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(Sky.radius),
+                          side: BorderSide(color: tones.warn),
                         ),
-                        onTap: () => _open(RunScreen(client: widget.client, name: r.name)),
+                        child: ListTile(
+                          leading: Icon(Icons.pending_actions_outlined, color: tones.warn),
+                          title: Text(tr('Wartet auf dich: ${p.subject}', 'Waiting for you: ${p.subject}')),
+                          subtitle: Text(p.hold?.reason ?? ''),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _open(HoldScreen(client: widget.client, pipelineId: p.id)),
+                        ),
                       ),
                     ),
-                  ),
-                if (d.recent.isNotEmpty) SectionTitle(tr('Zuletzt fertig', 'Recently finished')),
-                if (d.recent.isNotEmpty)
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      for (final g in d.recent)
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: AspectRatio(
-                              aspectRatio: 1,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Stack(
-                                  fit: StackFit.expand,
-                                  children: [
-                                    if (g.preview != null) ServerImage(client: widget.client, path: g.preview!),
-                                    Align(
-                                      alignment: Alignment.bottomLeft,
-                                      child: Container(
-                                        width: double.infinity,
-                                        color: const Color(0x99000000),
-                                        padding: const EdgeInsets.all(6),
-                                        child: Text(
-                                          g.displayTitle,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(fontSize: 12),
+                      Expanded(
+                        child: _Tile(
+                          label: tr('Nacht', 'Night'),
+                          value: d.night.activeSession == null
+                              ? tr('Keine aktiv', 'None active')
+                              : tr('Läuft', 'Running'),
+                          color: d.night.activeSession == null ? null : tones.good,
+                          detail: d.night.activeSession,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _Tile(
+                          label: tr('Läufe', 'Runs'),
+                          value: d.running.isEmpty
+                              ? tr('Keiner rechnet', 'None computing')
+                              : tr('${d.running.length} rechnen', '${d.running.length} computing'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    key: const Key('new-develop'),
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                    onPressed: () => _open(DevelopScreen(client: widget.client)),
+                    label: Text(tr('Neue Entwicklung', 'New develop')),
+                  ),
+                  if (d.running.isNotEmpty) SectionTitle(tr('Entwicklung läuft', 'Developing')),
+                  for (final r in d.running)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Card(
+                        child: ListTile(
+                          title: Text(r.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 6),
+                              LinearProgressIndicator(value: r.progress),
+                              const SizedBox(height: 6),
+                              Text(
+                                [
+                                  if (r.currentOp != null) opLabel(r.currentOp!),
+                                  if (r.totalSteps > 0) '${r.stepsDone}/${r.totalSteps}',
+                                  if (r.eta != null) tr('noch ~${duration(r.eta!)}', '~${duration(r.eta!)} left'),
+                                ].join(' · '),
+                              ),
+                            ],
+                          ),
+                          onTap: () => _open(RunScreen(client: widget.client, name: r.name)),
+                        ),
+                      ),
+                    ),
+                  if (d.recent.isNotEmpty) SectionTitle(tr('Zuletzt fertig', 'Recently finished')),
+                  if (d.recent.isNotEmpty)
+                    Row(
+                      children: [
+                        for (final g in d.recent)
+                          // a phone's share of the row; on a tablet no larger than a thumbnail
+                          Flexible(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 240),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: AspectRatio(
+                                  aspectRatio: 1,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        if (g.preview != null) ServerImage(client: widget.client, path: g.preview!),
+                                        Align(
+                                          alignment: Alignment.bottomLeft,
+                                          child: Container(
+                                            width: double.infinity,
+                                            color: const Color(0x99000000),
+                                            padding: const EdgeInsets.all(6),
+                                            child: Text(
+                                              g.displayTitle,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(fontSize: 12),
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                if (d.events.isNotEmpty) ...[
-                  SectionTitle(tr('Ereignisse', 'Events')),
-                  EventTimeline(days: groupEvents(d.events)),
+                      ],
+                    ),
+                  if (d.events.isNotEmpty) ...[
+                    SectionTitle(tr('Ereignisse', 'Events')),
+                    EventTimeline(days: groupEvents(d.events)),
+                  ],
                 ],
-              ],
+              ),
             );
           },
         ),

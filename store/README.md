@@ -21,6 +21,18 @@ appstore/review_notes.txt             ≤ 4000, English, the App Review notes (n
 
 Languages: `de-DE` (default) and `en-US`.
 
+### Tablets (since 0.7.0)
+
+The app lays itself out for tablets (lib/layout.dart) and is built for iPad as well as
+iPhone (`TARGETED_DEVICE_FAMILY = "1,2"`). That asks for screenshots this folder does not
+have yet; `test/screenshots_test.dart` renders phones only so far.
+
+```
+appstore/screenshots/<language>/ipad/  2064 × 2752 (13″ iPad), required for an iPad build
+play/<language>/tablet7/                7″ tablet, optional; Play shows the app as
+play/<language>/tablet10/               "designed for tablets" only with these
+```
+
 Regenerate:
 
 ```sh
