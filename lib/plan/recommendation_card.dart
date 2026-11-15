@@ -112,6 +112,12 @@ class RecommendationCard extends StatelessWidget {
                       Icons.filter_alt_outlined,
                       '${r.filter}${r.exposureS != null ? ' · ${r.exposureS!.round()} s' : ''}',
                     ),
+                  if (r.maxGustKmh != null)
+                    _Tag(
+                      Icons.air,
+                      tr('Böen ${r.maxGustKmh!.round()} km/h', 'gusts ${r.maxGustKmh!.round()} km/h'),
+                      key: Key('rec-gust-${r.name}'),
+                    ),
                   if (r.alreadyHours > 0)
                     _Tag(
                       Icons.inventory_2_outlined,
@@ -153,6 +159,10 @@ String blockedText(Recommendation r) => switch (r.blockedBy) {
   'clouds' => tr(
     'bewölkt – sonst ${decimal(r.darkHoursAboveHorizon, 1)} h dunkel und hoch genug',
     'clouded out – otherwise ${decimal(r.darkHoursAboveHorizon, 1)} h dark and high enough',
+  ),
+  'wind' => tr(
+    'zu windig – sonst ${decimal(r.darkHoursAboveHorizon, 1)} h dunkel und klar',
+    'too windy – otherwise ${decimal(r.darkHoursAboveHorizon, 1)} h dark and clear',
   ),
   _ => tr('steht nicht hoch genug im Dunkeln', 'not high enough while it is dark'),
 };

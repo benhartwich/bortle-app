@@ -38,12 +38,17 @@ class FakeServer {
   /// Tonight's forecast covers every target (the night of 2026-11-12, 22:16).
   bool cloudedTonight = false;
 
+  /// Tonight is clear but every clear hour gusts past the limit (the night of 2026-11-14).
+  bool windyTonight = false;
+
   /// The `date` each recommendation request asked for (null: tonight).
   final recommendDates = <String?>[];
 
   Map<String, Object?> _recommendations(String? date) {
     recommendDates.add(date);
     final clouded = date == null && cloudedTonight;
+    final windy = date == null && windyTonight && !clouded;
+    final blocked = clouded || windy;
     Map<String, Object?> target(
       String name, {
       required double score,
@@ -66,14 +71,15 @@ class FakeServer {
       'type': 'emission_nebula',
       'ra_deg': ra,
       'dec_deg': dec,
-      'score': clouded ? score / 10 : score,
-      'visible_hours': clouded ? 0.0 : hours,
+      'score': blocked ? score / 10 : score,
+      'visible_hours': blocked ? 0.0 : hours,
       'max_altitude_deg': maxAlt,
       'mean_altitude_deg': meanAlt,
       'airmass': airmass,
-      'window_start': clouded ? null : from,
-      'window_end': clouded ? null : to,
-      'mean_cloud': clouded ? null : 0.05,
+      'window_start': blocked ? null : from,
+      'window_end': blocked ? null : to,
+      'mean_cloud': blocked ? null : 0.05,
+      'max_gust_kmh': blocked ? null : 9.0,
       'fov_fill': 0.4,
       'fov_verdict': verdict,
       'recommended_filter': filter,
@@ -81,7 +87,11 @@ class FakeServer {
       'favorite': favorite,
       'already_hours': already,
       'status': already > 0 ? 'started' : 'new',
-      'blocked_by': clouded ? 'clouds' : null,
+      'blocked_by': clouded
+          ? 'clouds'
+          : windy
+          ? 'wind'
+          : null,
       'dark_hours_above_horizon': hours,
       'reasons': ['culminates at ${maxAlt.round()}°'],
     };
@@ -92,6 +102,8 @@ class FakeServer {
         'end': '2026-11-15T04:20:00+00:00',
         'hours': 11.0,
         'clouded_out': clouded,
+        'windy_out': windy,
+        'gust_limit_kmh': 15.0,
       },
       'fov_arcmin': {'width': 100.4, 'height': 67.1},
       'clouds_available': true,

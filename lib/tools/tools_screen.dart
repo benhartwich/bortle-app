@@ -900,7 +900,9 @@ class _HourRow extends StatelessWidget {
                     '${tr('Wolken', 'Clouds')} ${cloud.round()} %',
                     if (h.seeing != null) 'Seeing ${seeingText(h.seeing!)}',
                     if (h.transparency != null) transparencyText(h.transparency!),
-                    if (h.wind != null) '${tr('Wind', 'Wind')} ${h.wind!.round()} km/h',
+                    if (h.wind != null)
+                      '${tr('Wind', 'Wind')} ${h.wind!.round()} km/h'
+                          '${h.gust != null ? ', ${tr('Böen', 'gusts')} ${h.gust!.round()}' : ''}',
                   ].join(' · '),
                   style: const TextStyle(fontSize: 12),
                 ),

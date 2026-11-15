@@ -64,10 +64,12 @@ Future<void> shot(WidgetTester tester, String name) async {
   File('$_shots/$name.png').writeAsBytesSync(bytes!.buffer.asUint8List());
 }
 
-Future<FakeServer> openPlan(WidgetTester tester, {bool clouded = false}) async {
+Future<FakeServer> openPlan(WidgetTester tester, {bool clouded = false, bool windy = false}) async {
   phone(tester);
   if (_shots != null) await _loadFonts();
-  final server = FakeServer()..cloudedTonight = clouded;
+  final server = FakeServer()
+    ..cloudedTonight = clouded
+    ..windyTonight = windy;
   await tester.pumpWidget(app(server));
   await tester.pumpAndSettle();
   await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Planen')));
@@ -133,6 +135,20 @@ void main() {
     expect(server.recommendDates.last, _day(1));
     expect(find.byKey(const Key('nothing-usable')), findsNothing);
     expect(find.byKey(const Key('rec-window-Pacman Nebula')), findsOneWidget);
+  });
+
+  testWidgets('a clear night too windy to set up says so, not that nothing is high enough', (tester) async {
+    final server = await openPlan(tester, windy: true);
+    expect(find.text('Rest der Nacht zu windig'), findsOneWidget);
+    expect(find.textContaining('Böen über 15 km/h'), findsOneWidget);
+    expect(find.textContaining('zu windig – sonst 11,0 h dunkel und klar'), findsOneWidget);
+    expect(find.text('Kein Ziel hoch genug im Dunkeln'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('next-night')));
+    await tester.pumpAndSettle();
+    expect(server.recommendDates.last, _day(1));
+    expect(find.byKey(const Key('nothing-usable')), findsNothing);
+    expect(find.byKey(const Key('rec-gust-Pacman Nebula')), findsOneWidget);
   });
 
   testWidgets('the search suggests from the catalogue as you type, German names too', (tester) async {

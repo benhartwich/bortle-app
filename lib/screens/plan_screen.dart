@@ -323,7 +323,14 @@ class _PlanScreenState extends State<PlanScreen> {
   Widget _nothingUsable(RecommendedNight night) {
     final tones = context.tones;
     final clouds = night.cloudedOut || night.targets.any((r) => r.blockedBy == 'clouds');
-    final title = clouds
+    // the wind only when the sky is clear: a cloudy night is cloudy, whatever the wind
+    final wind = !night.cloudedOut && (night.windyOut || night.targets.any((r) => r.blockedBy == 'wind'));
+    final limit = night.gustLimitKmh;
+    final title = wind
+        ? (_night == 0
+              ? tr('Rest der Nacht zu windig', 'Rest of the night too windy')
+              : tr('Diese Nacht zu windig', 'This night too windy'))
+        : clouds
         ? (_night == 0
               ? tr('Rest der Nacht bewölkt', 'Rest of the night clouded out')
               : tr('Diese Nacht bewölkt', 'This night clouded out'))
@@ -337,14 +344,26 @@ class _PlanScreenState extends State<PlanScreen> {
           children: [
             Row(
               children: [
-                Icon(clouds ? Icons.cloud_outlined : Icons.landscape_outlined, color: tones.warn),
+                Icon(
+                  wind
+                      ? Icons.air
+                      : clouds
+                      ? Icons.cloud_outlined
+                      : Icons.landscape_outlined,
+                  color: tones.warn,
+                ),
                 const SizedBox(width: 10),
                 Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
               ],
             ),
             const SizedBox(height: 6),
             Text(
-              clouds
+              wind
+                  ? tr(
+                      'Klar, aber jede klare Stunde bringt Böen über ${limit == null ? 'deiner Grenze' : '${limit.round()} km/h'}. Die Grenze stellst du im Cockpit unter Nacht planen ein.',
+                      'Clear, but every clear hour gusts above ${limit == null ? 'your limit' : '${limit.round()} km/h'}. You set the limit in the cockpit under Plan the night.',
+                    )
+                  : clouds
                   ? tr(
                       'Die Vorhersage deckt die Ziele zu, die ein klarer Himmel geben würde. Die Liste unten zeigt sie trotzdem.',
                       'The forecast covers the targets a clear sky would give. The list below shows them anyway.',
