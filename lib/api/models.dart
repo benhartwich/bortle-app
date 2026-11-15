@@ -604,6 +604,7 @@ class Recommendation {
     this.meanCloud,
     this.blockedBy,
     this.darkHoursAboveHorizon = 0,
+    this.maxGustKmh,
   });
 
   factory Recommendation.fromJson(Map j) => Recommendation(
@@ -628,6 +629,7 @@ class Recommendation {
     meanCloud: _dbl(j['mean_cloud']),
     blockedBy: _str(j['blocked_by']),
     darkHoursAboveHorizon: _dbl(j['dark_hours_above_horizon']) ?? 0,
+    maxGustKmh: _dbl(j['max_gust_kmh']),
   );
 
   final double? raDeg;
@@ -647,8 +649,12 @@ class Recommendation {
   final double? fovFill;
   final double? meanCloud;
 
-  /// Why there is no window: "clouds" or "horizon"; null when there is one.
+  /// Why there is no window: "clouds", "wind" (clear, but every clear hour gusts past the
+  /// account's limit) or "horizon"; null when there is one.
   final String? blockedBy;
+
+  /// The strongest gust (km/h, at 10 m) forecast in the window; null without a forecast.
+  final double? maxGustKmh;
 
   /// What a clear sky would give: dark and above the horizon, clouds ignored.
   final double darkHoursAboveHorizon;
@@ -749,6 +755,8 @@ class RecommendedNight {
     this.nightEnd,
     this.darkHours = 0,
     this.cloudedOut = false,
+    this.windyOut = false,
+    this.gustLimitKmh,
     this.fovArcmin,
     this.siteLat,
     this.siteLon,
@@ -766,6 +774,8 @@ class RecommendedNight {
       nightEnd: _date(night['end']),
       darkHours: _dbl(night['hours']) ?? 0,
       cloudedOut: night['clouded_out'] == true,
+      windyOut: night['windy_out'] == true,
+      gustLimitKmh: _dbl(night['gust_limit_kmh']),
       fovArcmin: fov is Map && fov['width'] is num && fov['height'] is num
           ? ((fov['width'] as num).toDouble(), (fov['height'] as num).toDouble())
           : null,
@@ -779,6 +789,12 @@ class RecommendedNight {
 
   /// The forecast covers (nearly) every target a clear sky would have given.
   final bool cloudedOut;
+
+  /// Clear, but the wind takes (nearly) every target: too windy to set up.
+  final bool windyOut;
+
+  /// The account's wind limit (strongest gust, km/h); null from a server without it.
+  final double? gustLimitKmh;
 
   /// The rig's field, width × height in arcminutes; null without optics in the profile.
   final (double, double)? fovArcmin;
