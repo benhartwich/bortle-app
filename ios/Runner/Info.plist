@@ -9,6 +9,8 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Bortle works out twilight, the moon and how high objects climb for where you are. The location stays on your phone; the weather is asked for a place rounded to about 10 km.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Bortle only asks for your location while you use the app, to work out twilight, the moon and how high objects climb for where you are. It never tracks you in the background; the location stays on your phone.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>The sky map can follow where you point your phone, from its compass and tilt. Nothing of it leaves the phone.</string>
 	<key>NSLocalNetworkUsageDescription</key>
